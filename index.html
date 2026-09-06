@@ -1,0 +1,2659 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mermaid/Merman Editor</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0f1117;--panel:#181c27;--border:#2a2f3e;--accent:#00c4a7;
+  --text:#d0d6e8;--text-dim:#707A95;--editor-bg:#12151f;
+  --canvas-bg:#161a26;--header-h:48px;--divider:5px;
+  --edge-color:#ffffff;
+  --link-color:#8888ff;--hover-color:#bbbbff;--active-color:#ffffff;--visited-color:#ff88ff;
+}
+body.light{
+  --bg:#e8eaf0;--panel:#f4f5f8;--border:#c8cdd8;--accent:#0097a7;
+  --text:#1a1e2e;--text-dim:#6b7280;--editor-bg:#ffffff;
+  --canvas-bg:#ffffff;
+  --edge-color:#000000;
+  --link-color:#4444ff;--hover-color:#7777ff;--active-color:#aaaaff;--visited-color:#ff88ff;
+}
+body.light #cwrap{background-image:none;}
+body.light #editor{color:#2a3060;}
+body.light #handle-layer circle{stroke:rgba(40,40,40,0.35);}
+body.light #handle-layer line{stroke:rgba(40,40,40,0.25);}
+body.light .hbtn.primary{color:#ffffff;}
+body.light #errbox{background:#fff0f0;border-color:#e0a0a0;color:#c0304a;}
+html,body{height:100%;background:var(--bg);color:var(--text);
+  font-family:'Segoe UI',system-ui,sans-serif;overflow:hidden}
+#header{height:var(--header-h);background:var(--panel);
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;padding:0 16px;gap:12px;user-select:none}
+#header .logo{font-size:15px;font-weight:600;color:var(--accent);flex:1}
+#header .logo span{color:var(--text-dim);font-weight:400}
+.hbtn{padding:6px 14px;border-radius:6px;border:1px solid var(--border);
+  background:transparent;color:var(--text);font-size:13px;cursor:pointer;transition:background .15s}
+.hbtn:hover{background:var(--border)}
+.hbtn.active{background:var(--accent);color:#fff;box-shadow:inset 0 2px 4px rgba(0,0,0,0.4);}
+.hbtn:disabled{opacity:0.35;cursor:default;pointer-events:none;}
+.hbtn:disabled{opacity:0.35;cursor:default;pointer-events:none;}
+.hbtn.primary{background:var(--accent);color:#0f1117;border-color:var(--accent);font-weight:600}
+.hbtn.primary:hover{filter:brightness(1.1)}
+.hbtn.primary:active{filter:brightness(.8)}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--accent);
+  box-shadow:0 0 6px var(--accent);flex-shrink:0}
+.dot.err{background:#ff4d6d;box-shadow:0 0 6px #ff4d6d}
+#main{display:flex;height:calc(100vh - var(--header-h))}
+#epane{width:340px;min-width:180px;max-width:60%;
+  display:flex;flex-direction:column;
+  border-right:var(--divider) solid var(--bg);flex-shrink:0}
+.plabel{height:32px;background:var(--panel);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;padding:0 14px;
+  font-size:11px;font-weight:600;letter-spacing:.08em;
+  color:var(--text-dim);text-transform:uppercase;flex-shrink:0}
+#editor{flex:1;resize:none;background:var(--editor-bg);color:#c9d8ff;
+  border:none;outline:none;padding:18px;
+  font-family:'Fira Code','Cascadia Code',monospace;
+  font-size:13.5px;line-height:1.7;tab-size:2;caret-color:var(--accent)}
+#errbox{display:none;background:#1f0a10;border-top:1px solid #4a1020;
+  color:#ff7090;font-size:12px;font-family:monospace;
+  padding:10px 14px;max-height:80px;overflow:auto;flex-shrink:0}
+#hpane{width:260px;min-width:160px;max-width:500px;display:flex;flex-direction:column;border-left:1px solid var(--border);background:var(--panel-bg);overflow:hidden;flex-shrink:0;}
+#hpane .plabel{padding:8px 12px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--text-dim);border-bottom:1px solid var(--border);flex-shrink:0;}
+#hcontent{padding:12px 14px;overflow-y:auto;flex:1;font-size:13px;line-height:1.6;color:var(--fg,#d0d6e8);}
+#hcontent h2{margin:14px 0 4px;font-size:17px;font-weight:900;letter-spacing:.05em;text-transform:uppercase;color:var(--text-dim);}
+#hcontent h3{margin:14px 0 4px;font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--text-dim);}
+#hcontent p{margin:0 0 8px;color:var(--text);}
+#hcontent ul{margin:0 0 8px; padding-left: 20px;}
+#hcontent ol{margin:0 0 8px;;}
+#hcontent li{margin-bottom: 4px;color:var(--text);}
+#hcontent a:link{color:var(--link-color);}
+#hcontent a:hover{color:var(--hover-color);}
+#hcontent a:active{color:var(--active-color);}
+#hcontent a:visited{color:var(--visited-color)}
+#hcontent code{background:rgba(255,255,255,0.08);padding:1px 4px;border-radius:3px;font-size:12px;}
+#hresizer{width:4px;cursor:col-resize;background:var(--border);flex-shrink:0;display:none;height:100%;}
+#hresizer:hover,#hresizer.dragging{background:var(--accent);}
+#resizer{width:var(--divider);background:var(--bg);cursor:col-resize;
+  flex-shrink:0;transition:background .15s}
+#resizer:hover,#resizer.dragging{background:var(--accent)}
+#cpane{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+#ctoolbar{height:32px;background:var(--panel);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;padding:0 14px;gap:10px;flex-shrink:0}
+.clabel{font-size:11px;font-weight:600;letter-spacing:.08em;
+  color:var(--text-dim);text-transform:uppercase;flex:1}
+.ui-desc-label{font-size:11px;color:var(--text-dim);white-space:nowrap;display:flex;align-items:center;gap:4px;margin:0 8px;}
+#cpSizeSlider{width:80px;accent-color:var(--accent);}
+.tbtn{padding:3px 10px;border-radius:4px;border:1px solid var(--border);
+  background:transparent;color:var(--text);font-size:11px;cursor:pointer;transition:background .15s}
+.tbtn:hover{background:var(--border)}
+.tbtn.active{background:var(--accent);color:#fff;filter:brightness(.8);box-shadow:inset 0 2px 4px rgba(0,0,0,0.4);}
+.tbtn:disabled{opacity:0.35;cursor:default;pointer-events:none;}
+.tbtn:disabled{opacity:0.35;cursor:default;pointer-events:none;}
+#cwrap{flex:1;overflow:hidden;position:relative;background:var(--canvas-bg);}
+#cinner{position:absolute;top:0;left:0;width:100%;height:100%;transform-origin:0 0}
+.drag-node{cursor:move}
+.sel-glow rect,.sel-glow circle,.sel-glow ellipse,.sel-glow polygon,.sel-glow path{
+  filter:brightness(1.4) drop-shadow(0 0 8px rgba(255,200,0,0.9))!important;}
+.drag-node:hover rect,.drag-node:hover polygon,
+.drag-node:hover circle,.drag-node:hover ellipse{
+  filter:brightness(1.3) drop-shadow(0 0 6px rgba(0,196,167,.5))}
+g.cluster{cursor:move}
+g.cluster:hover rect{
+  filter:brightness(1.2) drop-shadow(0 0 6px rgba(184,146,10,.6))}
+.dragging-node{cursor:move!important}
+.dragging-node rect,.dragging-node polygon,
+.dragging-node circle,.dragging-node ellipse{
+  filter:brightness(1.4) drop-shadow(0 0 10px rgba(0,196,167,.8))}
+#ph{position:absolute;inset:0;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:12px;
+  color:var(--text-dim);pointer-events:none;font-size:14px}
+#ph svg{opacity:.25}
+#hint{position:absolute;bottom:12px;left:14px;font-size:11px;color:var(--text-dim);pointer-events:none}
+#cwrap.panning *{cursor:grab!important;pointer-events:none!important}
+#cwrap.drop-active,#editor.drop-active{outline:3px dashed var(--accent);outline-offset:-3px;}
+#cwrap.panning{cursor:grab!important}
+#cwrap.panning-active,#cwrap.panning-active *{cursor:grabbing!important}
+#handle-layer circle:hover,#handle-layer polygon:hover{
+  filter:brightness(1.6) drop-shadow(0 0 5px rgba(255,255,255,0.9));
+  cursor:move;
+}
+body.light #handle-layer circle:hover,body.light #handle-layer polygon:hover{
+  filter:brightness(0.6) drop-shadow(0 0 5px rgba(0,0,120,0.7));
+  cursor:move;
+}
+#filename{background:transparent;border:none;border-bottom:1px solid var(--border);color:var(--text);font-size:14px;padding:2px 6px;width:160px;outline:none;margin-left:10px;}
+#filename:focus{border-bottom-color:var(--accent);}
+
+/* ── Mermaid color overrides — dark mode (default) ── */
+#cinner svg .node rect,
+#cinner svg .node circle,
+#cinner svg .node ellipse,
+#cinner svg .node polygon,
+#cinner svg .node path{fill:#1e2640!important;stroke:#2e8bff!important;stroke-width:1.5px!important;}
+#cinner svg .node .label text,
+#cinner svg .node .label span{color:#d0d6e8!important;fill:#d0d6e8!important;}
+#cinner svg .edgePaths .path,#cinner svg .edgePaths path.transition,#cinner svg .edgePaths path.relationshipLine{stroke:var(--edge-color)!important;fill:none!important;}
+#cinner svg .marker:not(.classDiagram):not(.er),#cinner svg .marker.cross:not(.classDiagram):not(.er),
+#cinner svg .arrowheadPath,#cinner svg .arrowMarkerPath{fill:var(--edge-color)!important;stroke:var(--edge-color)!important;}
+#cinner svg .marker.er path,#cinner svg .marker.er polygon,#cinner svg .marker.er circle{stroke:var(--edge-color)!important;fill:none!important;}
+#cinner svg .marker.classDiagram path,#cinner svg .marker.classDiagram polygon,#cinner svg .marker.classDiagram circle{stroke:var(--edge-color)!important;}
+#cinner svg .marker.classDiagram.aggregation path,#cinner svg .marker.classDiagram.extension path,#cinner svg .marker.classDiagram.extension polygon{fill:transparent!important;}
+#cinner svg .marker.classDiagram.composition path,#cinner svg .marker.classDiagram.dependency path{fill:var(--edge-color)!important;}
+#cinner svg .cluster rect{fill:#3a3510!important;stroke:#b8920a!important;stroke-width:1.5px!important;}
+#cinner svg .cluster-label text,#cinner svg .cluster-label span{fill:#d0d6e8!important;color:#d0d6e8!important;}
+#cinner svg text{fill:#d0d6e8!important;}
+#cinner svg .edgeLabel rect,#cinner svg .edgeLabel foreignObject{fill:transparent!important;}
+#cinner svg .edgeLabel span,#cinner svg .edgeLabel div{color:#d0d6e8!important;background:transparent!important;}
+
+/* ── Mermaid color overrides — light mode ── */
+body.light #cinner svg .node rect,
+body.light #cinner svg .node circle,
+body.light #cinner svg .node ellipse,
+body.light #cinner svg .node polygon,
+body.light #cinner svg .node path{fill:#e8f0fe!important;stroke:#1a73e8!important;stroke-width:1.5px!important;}
+body.light #cinner svg .node .label text,
+body.light #cinner svg .node .label span{color:#1a1e2e!important;fill:#1a1e2e!important;}
+body.light #cinner svg .edgePaths .path{stroke:var(--edge-color)!important;fill:none!important;}
+body.light #cinner svg .marker.er path,body.light #cinner svg .marker.er polygon,body.light #cinner svg .marker.er circle{stroke:var(--edge-color)!important;fill:none!important;}
+body.light #cinner svg .marker.classDiagram path,body.light #cinner svg .marker.classDiagram polygon,body.light #cinner svg .marker.classDiagram circle{stroke:var(--edge-color)!important;}
+body.light #cinner svg .marker.classDiagram.aggregation path,body.light #cinner svg .marker.classDiagram.extension path,body.light #cinner svg .marker.classDiagram.extension polygon{fill:transparent!important;}
+body.light #cinner svg .marker.classDiagram.composition path,body.light #cinner svg .marker.classDiagram.dependency path{fill:var(--edge-color)!important;}
+body.light #cinner svg .marker:not(.classDiagram):not(.er),body.light #cinner svg .marker.cross:not(.classDiagram):not(.er),
+body.light #cinner svg .arrowheadPath,body.light #cinner svg .arrowMarkerPath{fill:var(--edge-color)!important;stroke:var(--edge-color)!important;}
+body.light #cinner svg .cluster rect{fill:#fffde8!important;stroke:#b8920a!important;stroke-width:1.5px!important;}
+body.light #cinner svg .cluster-label text,body.light #cinner svg .cluster-label span{fill:#1a1e2e!important;color:#1a1e2e!important;}
+body.light #cinner svg text{fill:#1a1e2e!important;}
+body.light #cinner svg .edgeLabel rect,body.light #cinner svg .edgeLabel foreignObject{fill:transparent!important;}
+body.light #cinner svg .edgeLabel span,body.light #cinner svg .edgeLabel div{color:#1a1e2e!important;background:transparent!important;}nitial-scale=1.0">
+<title>Mermaid/Merman Editor</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0f1117;--panel:#181c27;--border:#2a2f3e;--accent:#00c4a7;
+  --text:#d0d6e8;--text-dim:#707A95;--editor-bg:#12151f;
+  --canvas-bg:#161a26;--header-h:48px;--divider:5px;
+  --edge-color:#ffffff;
+}
+body.light{
+  --bg:#e8eaf0;--panel:#f4f5f8;--border:#c8cdd8;--accent:#0097a7;
+  --text:#1a1e2e;--text-dim:#6b7280;--editor-bg:#ffffff;
+  --canvas-bg:#ffffff;
+  --edge-color:#000000;
+}
+body.light #cwrap{background-image:none;}
+body.light #editor{color:#2a3060;}
+body.light #handle-layer circle{stroke:rgba(40,40,40,0.35);}
+body.light #handle-layer line{stroke:rgba(40,40,40,0.25);}
+body.light .hbtn.primary{color:#ffffff;}
+body.light #errbox{background:#fff0f0;border-color:#e0a0a0;color:#c0304a;}
+html,body{height:100%;background:var(--bg);color:var(--text);
+  font-family:'Segoe UI',system-ui,sans-serif;overflow:hidden}
+#header{height:var(--header-h);background:var(--panel);
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;padding:0 16px;gap:12px;user-select:none}
+#header .logo{font-size:15px;font-weight:600;color:var(--accent);flex:1}
+#header .logo span{color:var(--text-dim);font-weight:400}
+.hbtn{padding:6px 14px;border-radius:6px;border:1px solid var(--border);
+  background:transparent;color:var(--text);font-size:13px;cursor:pointer;transition:background .15s}
+.hbtn:hover{background:var(--border)}
+.hbtn.active{background:var(--accent);color:#fff;box-shadow:inset 0 2px 4px rgba(0,0,0,0.4);}
+.hbtn:disabled{opacity:0.35;cursor:default;pointer-events:none;}
+.hbtn:disabled{opacity:0.35;cursor:default;pointer-events:none;}
+.hbtn.primary{background:var(--accent);color:#0f1117;border-color:var(--accent);font-weight:600}
+.hbtn.primary:hover{filter:brightness(1.1)}
+.hbtn.primary:active{filter:brightness(.8)}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--accent);
+  box-shadow:0 0 6px var(--accent);flex-shrink:0}
+.dot.err{background:#ff4d6d;box-shadow:0 0 6px #ff4d6d}
+#main{display:flex;height:calc(100vh - var(--header-h))}
+#epane{width:340px;min-width:180px;max-width:60%;
+  display:flex;flex-direction:column;
+  border-right:var(--divider) solid var(--bg);flex-shrink:0}
+.plabel{height:32px;background:var(--panel);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;padding:0 14px;
+  font-size:11px;font-weight:600;letter-spacing:.08em;
+  color:var(--text-dim);text-transform:uppercase;flex-shrink:0}
+#editor{flex:1;resize:none;background:var(--editor-bg);color:#c9d8ff;
+  border:none;outline:none;padding:18px;
+  font-family:'Fira Code','Cascadia Code',monospace;
+  font-size:13.5px;line-height:1.7;tab-size:2;caret-color:var(--accent)}
+#errbox{display:none;background:#1f0a10;border-top:1px solid #4a1020;
+  color:#ff7090;font-size:12px;font-family:monospace;
+  padding:10px 14px;max-height:80px;overflow:auto;flex-shrink:0}
+#resizer{width:var(--divider);background:var(--bg);cursor:col-resize;
+  flex-shrink:0;transition:background .15s}
+#resizer:hover,#resizer.dragging{background:var(--accent)}
+#cpane{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+#ctoolbar{height:32px;background:var(--panel);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;padding:0 14px;gap:10px;flex-shrink:0}
+.clabel{font-size:11px;font-weight:600;letter-spacing:.08em;
+  color:var(--text-dim);text-transform:uppercase;flex:1}
+.tbtn{padding:3px 10px;border-radius:4px;border:1px solid var(--border);
+  background:transparent;color:var(--text);font-size:11px;cursor:pointer;transition:background .15s}
+.tbtn:hover{background:var(--border)}
+.tbtn.active{background:var(--accent);color:#fff;filter:brightness(.8);box-shadow:inset 0 2px 4px rgba(0,0,0,0.4);}
+.tbtn:disabled{opacity:0.35;cursor:default;pointer-events:none;}
+.tbtn:disabled{opacity:0.35;cursor:default;pointer-events:none;}
+#cwrap{flex:1;overflow:hidden;position:relative;background:var(--canvas-bg);}
+#cinner{position:absolute;top:0;left:0;width:100%;height:100%;transform-origin:0 0}
+.drag-node{cursor:move}
+.sel-glow rect,.sel-glow circle,.sel-glow ellipse,.sel-glow polygon,.sel-glow path{
+  filter:brightness(1.4) drop-shadow(0 0 8px rgba(255,200,0,0.9))!important;}
+.drag-node:hover rect,.drag-node:hover polygon,
+.drag-node:hover circle,.drag-node:hover ellipse{
+  filter:brightness(1.3) drop-shadow(0 0 6px rgba(0,196,167,.5))}
+g.cluster{cursor:move}
+g.cluster:hover rect{
+  filter:brightness(1.2) drop-shadow(0 0 6px rgba(184,146,10,.6))}
+.dragging-node{cursor:move!important}
+.dragging-node rect,.dragging-node polygon,
+.dragging-node circle,.dragging-node ellipse{
+  filter:brightness(1.4) drop-shadow(0 0 10px rgba(0,196,167,.8))}
+#ph{position:absolute;inset:0;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:12px;
+  color:var(--text-dim);pointer-events:none;font-size:14px}
+#ph svg{opacity:.25}
+#hint{position:absolute;bottom:12px;left:14px;font-size:11px;color:var(--text-dim);pointer-events:none}
+#cwrap.panning *{cursor:grab!important;pointer-events:none!important}
+#cwrap.panning{cursor:grab!important}
+#cwrap.panning-active,#cwrap.panning-active *{cursor:grabbing!important}
+#handle-layer circle:hover,#handle-layer polygon:hover{
+  filter:brightness(1.6) drop-shadow(0 0 5px rgba(255,255,255,0.9));
+  cursor:move;
+}
+body.light #handle-layer circle:hover,body.light #handle-layer polygon:hover{
+  filter:brightness(0.6) drop-shadow(0 0 5px rgba(0,0,120,0.7));
+  cursor:move;
+}
+#filename{background:transparent;border:none;border-bottom:1px solid var(--border);color:var(--text);font-size:14px;padding:2px 6px;width:160px;outline:none;margin-left:10px;}
+#filename:focus{border-bottom-color:var(--accent);}
+
+/* ── Mermaid color overrides — dark mode (default) ── */
+#cinner svg .node rect,
+#cinner svg .node circle,
+#cinner svg .node ellipse,
+#cinner svg .node polygon,
+#cinner svg .node path{fill:#1e2640;stroke:#2e8bff;stroke-width:1.5px;}
+#cinner svg .node .label,
+#cinner svg .node .label text,
+#cinner svg .node .label span,
+#cinner svg .label{color:#d0d6e8;fill:#d0d6e8;}
+#cinner svg .edgePaths .path{stroke:#2e8bff;}
+#cinner svg .marker,
+#cinner svg .marker.cross,
+#cinner svg .arrowheadPath,
+#cinner svg .arrowMarkerPath{fill:#4a7bff;stroke:#4a7bff;}
+#cinner svg .cluster rect{fill:#1a1e30;stroke:#2e8bff;stroke-width:1.5px;}
+#cinner svg .cluster-label,
+#cinner svg .cluster-label text,
+#cinner svg .cluster-label span{fill:#d0d6e8;color:#d0d6e8;}
+#cinner svg text{fill:#d0d6e8;}
+#cinner svg .edgeLabel,
+#cinner svg .edgeLabel rect,
+#cinner svg .edgeLabel foreignObject,
+#cinner svg .edgeLabel div{fill:transparent;background:transparent;color:#d0d6e8;}
+#cinner svg .edgeLabel span{color:#d0d6e8;background:transparent;}
+
+/* ── Mermaid color overrides — light mode ── */
+body.light #cinner svg .node rect,
+body.light #cinner svg .node circle,
+body.light #cinner svg .node ellipse,
+body.light #cinner svg .node polygon,
+body.light #cinner svg .node path{fill:#e8f0fe;stroke:#1a73e8;stroke-width:1.5px;}
+body.light #cinner svg .node .label,
+body.light #cinner svg .node .label text,
+body.light #cinner svg .node .label span,
+body.light #cinner svg .label{color:#1a1e2e;fill:#1a1e2e;}
+body.light #cinner svg .edgePaths .path{stroke:#1a73e8;}
+body.light #cinner svg .marker,
+body.light #cinner svg .marker.cross,
+body.light #cinner svg .arrowheadPath,
+body.light #cinner svg .arrowMarkerPath{fill:#1a73e8;stroke:#1a73e8;}
+body.light #cinner svg .cluster rect{fill:#dce8fd;stroke:#1a73e8;stroke-width:1.5px;}
+body.light #cinner svg .cluster-label,
+body.light #cinner svg .cluster-label text,
+body.light #cinner svg .cluster-label span{fill:#1a1e2e;color:#1a1e2e;}
+body.light #cinner svg text{fill:#1a1e2e;}
+body.light #cinner svg .edgeLabel,
+body.light #cinner svg .edgeLabel rect,
+body.light #cinner svg .edgeLabel foreignObject,
+body.light #cinner svg .edgeLabel div{fill:transparent;background:transparent;color:#1a1e2e;}
+body.light #cinner svg .edgeLabel span{color:#1a1e2e;background:transparent;}
+</style>
+</head>
+<body>
+<div id="header">
+  <div class="logo">Mermaid/Merman <span>Editor v1.0.0</span></div>
+  <input type="text" id="filename" value="Untitled" spellcheck="false">
+  <div class="dot" id="dot"></div>
+  <button class="hbtn primary" id="fitBtn">Fit</button>
+  <button class="hbtn primary" id="resetBtn">Reset layout</button>
+  <button class="hbtn primary" id="exportBtn">Export PNG</button>
+  <button class="hbtn primary" id="exportSvgBtn">Export SVG</button>
+  <button class="hbtn primary" id="openBtn">Open mermaid / merman</button>
+  <button class="hbtn primary" id="saveBtn">Save merman</button>
+  <button class="hbtn" id="helpBtn">About / Help</button>
+  <input type="file" id="openFile" accept=".merman,.mmn,.mmd,.mermaid" style="display:none">
+</div>
+<div id="main">
+  <div id="epane">
+    <div class="plabel">Mermaid source</div>
+    <textarea id="editor" spellcheck="false">graph TD
+  A[Start] --> B{Is it working?}
+  B -- Yes --> C("`***Great!***`")
+  B -- No --> D(Debug it)
+  D -.-> E[Fix the bug]
+  E ==> B
+  C -.-> F{{Ship it}}
+  subgraph Success
+    C
+    F
+  end
+  subgraph Failure
+    D
+    E
+  end
+  subgraph Results
+    Success
+    Failure
+  end</textarea>
+    <div id="errbox"></div>
+  </div>
+  <div id="resizer"></div>
+  <div id="cpane">
+        <div id="ctoolbar">
+      <button class="tbtn" id="undoBtn" title="Undo" disabled>↩ Undo</button>
+      <button class="tbtn" id="redoBtn" title="Redo" disabled>↪ Redo</button>
+      <button class="tbtn" id="themeBtn" title="Toggle light/dark mode">☀️</button>
+      <button class="tbtn" id="previewBtn">Hide controls</button>
+      <label class="ui-desc-label">Control point size:
+        <input type="range" id="cpSizeSlider" min="0.5" max="1.5" step="0.05" value="1">
+      </label>
+      <label class="ui-desc-label">Zoom:
+        <button class="tbtn" id="zOutBtn">&#8722;</button>
+        <button class="tbtn" id="zInBtn">+</button>
+      </label>
+    </div>
+        <div id="cwrap">
+      <div id="cinner"></div>
+      <div id="ph">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <rect x="3" y="3" width="18" height="18" rx="2"/>
+          <path d="M3 9h18M9 21V9"/>
+        </svg>
+        <span>Diagram will appear here</span>
+      </div>
+    </div>
+  </div>
+  <div id="hresizer" style="display:none"></div>
+  <div id="hpane" style="display:none">
+    <div class="plabel">Help</div>
+      <div id="hcontent">
+        <h2>About</h2>
+        <p>Merman is a mermaid diagram editor and also a file format. It extends conventional mermaid diagrams, which lack almost any information for layout (except some directionality of flow), with positional information that gives you some manual control over how a mermaid diagram is displayed. Begin by bringing a <strong>mermaid</strong> diagram into the workspace. You can do this by:</p>
+        <ul>
+          <li>Clicking the Open button to find a .mmd/.mermaid/.mmn/.merman file.</li>
+          <li>Dragging a .mmd/.mermaid/.mmn/.merman file into the workspace.</li>
+          <li>Pasting mermaid code into the syntax editor.</li>
+        </ul>
+        <p>Saved <strong>merman</strong> files use a file format that appends layout details to the end of a standard mermaid file. You can always recover a mermaid file from a merman file by simply discarding the merman information after the obvious demarcation point in the file.</p>
+        <p>Currently, flowcharts (graphs) and classDiagrams are the best supported mermaid types. Other types might open correctly (sequenceDiagrams are confirmed) but might not be editable (or might not display correctly; I haven't tested them all yet).</p>
+        <h2>Commands</h2>
+        <h3>Moving boxes and subgraphs</h3>
+        <p>Drag any box or subgraph (a box containing boxes) to reposition it.</p>
+        <h3>Editing connections</h3>
+        <p>Drag <strong>connection endpoints</strong> to reposition where connections attach to boxes.</p>
+        <p><strong>Option+drag</strong> (Mac) or <strong>Alt+drag</strong> <strong>connection endpoints</strong> to reposition connections without snapping (in case they snap to an undesired location).</p>
+        <p>Drag <strong>bezier control handles</strong> to edit curves.</p>
+        <p>Drag <strong>connection label handles</strong> to reposition labels.</p>
+        <h3>Multi-object select</h3>
+        <p><strong>Command+click</strong> (Mac) or <strong>Ctrl+click</strong> to add/remove boxes and subgraphs to/from the selection for synchronized repositioning.</p>
+        <h3>Navigation</h3>
+        <p><strong>Mouse-scroll</strong> to zoom. <strong>Space+drag</strong> to pan. The <strong>Fit</strong> button nicely frames the diagram.</p>
+        <h3>Export</h3>
+        <p>PNGs are exported in light mode. The <strong>light/dark</strong> button can assist with previewing, as can the <strong>Show/Hide controls</strong> button (the controls are still available when hidden and will appear when the cursor is nearby).</p>
+        <p>Support for exported SVGs is currently tenuous. Generated SVGs render to a varying degree of correctness by varying SVG tools.</p>
+        <h3>Contact</h3>
+        <p>Merman was created by Keith Wiley (<a href="mailto:kwiley@keithwiley.com">kwiley@keithwiley.com</a>), mostly vibe-coded with Claude.</p>
+        <p><a href="https://github.com/kebwi/merman_editor" target="_blank">https://github.com/kebwi/merman_editor</a></p>
+      </div>
+    </div>
+  </div>
+<script>
+mermaid.initialize({
+  startOnLoad:false, theme:'base',
+  themeVariables:{fontSize:'15px'},
+  flowchart:{curve:'basis',htmlLabels:true,useMaxWidth:false}
+});
+
+const editor  = document.getElementById('editor');
+const cinner  = document.getElementById('cinner');
+const errbox  = document.getElementById('errbox');
+const dot     = document.getElementById('dot');
+const ph      = document.getElementById('ph');
+const cwrap   = document.getElementById('cwrap');
+
+let zoom=1,panX=20,panY=20;
+let isPanning=false,panStart={x:0,y:0};
+let renderTimer=null,renderCount=0;
+let currentSVG=null,currentRenderId=null;
+let edgeConnections=[];
+let userPositions=new Map();
+
+// Snapshot of edge geometry taken on mousedown, keyed by "src>tgt".
+// Values: {p1,c1,c2,p2} read from live path d attributes.
+let edgeSnapshot=new Map();
+
+// Unified drag state
+let dragTarget=null;
+let dragSVGStart={x:0,y:0};
+
+// ── Geometry ─────────────────────────────────────────────────────────
+function parseTx(attr){
+  const m=(attr||'').match(/translate\(\s*([-\d.e]+)[,\s]+([-\d.e]+)/);
+  return m?{x:+m[1],y:+m[2]}:{x:0,y:0};
+}
+function setTx(el,x,y){
+  const rest=(el.getAttribute('transform')||'').replace(/translate\([^)]*\)/g,'').trim();
+  el.setAttribute('transform',(rest?rest+' ':'')+'translate('+x+','+y+')');
+}
+function absBox(g){
+  let b;try{b=g.getBBox();}catch(_){return{cx:0,cy:0,x:0,y:0,w:0,h:0};}
+  // Accumulate all ancestor transforms up to SVG root
+  const{ox,oy}=ancestorOffset(g);
+  // Also include the element's own transform
+  const t=parseTx(g.getAttribute('transform'));
+  const tx=ox+t.x, ty=oy+t.y;
+  return{x:tx+b.x,y:ty+b.y,w:b.width,h:b.height,
+         cx:tx+b.x+b.width/2,cy:ty+b.y+b.height/2};
+}
+function borderPt(bb,tx,ty,inset=0){
+  const dx=tx-bb.cx,dy=ty-bb.cy;
+  const hw=bb.w/2,hh=bb.h/2;
+  if(hw<1||hh<1)return{x:bb.cx,y:bb.cy};
+  const s=Math.min(dx?Math.abs(hw/dx):1e9,dy?Math.abs(hh/dy):1e9);
+  const len=Math.sqrt(dx*dx+dy*dy)||1;
+  return{x:bb.cx+dx*s+(dx/len)*inset,y:bb.cy+dy*s+(dy/len)*inset};
+}
+function toSVGCoords(svgEl,cx,cy){
+  const pt=svgEl.createSVGPoint();pt.x=cx;pt.y=cy;
+  const m=svgEl.getScreenCTM();
+  return m?pt.matrixTransform(m.inverse()):{x:cx,y:cy};
+}
+function ancestorOffset(el){
+  let ox=0,oy=0,e=el.parentElement;
+  while(e&&e.tagName!=='svg'){const t=parseTx(e.getAttribute('transform'));ox+=t.x;oy+=t.y;e=e.parentElement;}
+  return{ox,oy};
+}
+function setPathD(pathEl,p1,p2,c1,c2,rectilinear){
+  if(rectilinear){
+    const origD=pathEl._origD;const origP1=pathEl._origP1;
+    if(!origD||!origP1)return;
+    const rdx=p1.x-origP1.x,rdy=p1.y-origP1.y;
+    if(Math.abs(rdx)<0.001&&Math.abs(rdy)<0.001)return;
+    const translated=origD.replace(/(-?[\d.]+),(-?[\d.]+)/g,(_,x,y)=>
+      (parseFloat(x)+rdx).toFixed(3)+','+(parseFloat(y)+rdy).toFixed(3));
+    pathEl.setAttribute('d',translated);
+    return;
+  }
+  const{ox,oy}=ancestorOffset(pathEl);
+  const s=pt=>({x:pt.x-ox,y:pt.y-oy});
+  pathEl.setAttribute('d',makePath(s(p1),s(p2),s(c1),s(c2)));
+}
+function pathEndpoints(pathEl){
+  const d=pathEl.getAttribute('d')||'';
+  const nums=[...d.matchAll(/([-\d.e]+),([-\d.e]+)/g)].map(m=>({x:+m[1],y:+m[2]}));
+  if(nums.length<2)return{p1:{x:0,y:0},c1:{x:0,y:0},c2:{x:0,y:0},p2:{x:0,y:0}};
+  const p1=nums[0],p2=nums[nums.length-1];
+  const c1=nums.length>=4?nums[1]:p1;
+  const c2=nums.length>=4?nums[2]:p2;
+  const{ox,oy}=ancestorOffset(pathEl);
+  if(ox||oy){const shift=pt=>({x:pt.x+ox,y:pt.y+oy});return{p1:shift(p1),c1:shift(c1),c2:shift(c2),p2:shift(p2)};}
+  return{p1,c1,c2,p2};
+}
+function borderNormal(nodeG,pt){
+  const b=absBox(nodeG);const tol=6;
+  if(Math.abs(pt.y-b.y)<tol)return{nx:0,ny:-1};
+  if(Math.abs(pt.y-(b.y+b.h))<tol)return{nx:0,ny:1};
+  if(Math.abs(pt.x-b.x)<tol)return{nx:-1,ny:0};
+  if(Math.abs(pt.x-(b.x+b.w))<tol)return{nx:1,ny:0};
+  const dx=pt.x-b.cx,dy=pt.y-b.cy,len=Math.hypot(dx,dy)||1;
+  return{nx:dx/len,ny:dy/len};
+}
+function isRectilinearPath(pathEl){
+  // Detect from source — swimlane diagrams use rectilinear connections
+  return /^\s*swimlane/i.test(editor.value);
+}
+
+function linearControls(p1,p2){
+  // Control points collinear with endpoints — bezier degenerates to straight line
+  return{
+    c1:{x:p1.x+(p2.x-p1.x)/3,   y:p1.y+(p2.y-p1.y)/3},
+    c2:{x:p1.x+(p2.x-p1.x)*2/3, y:p1.y+(p2.y-p1.y)*2/3},
+  };
+}
+
+function defaultControls(p1,p2,srcG,tgtG){
+  const dist=Math.hypot(p2.x-p1.x,p2.y-p1.y);
+  const arm=Math.max(40,dist*0.35);
+  let n1,n2;
+  if(srcG){n1=borderNormal(srcG,p1);}
+  else{const dx=p2.x-p1.x,dy=p2.y-p1.y,l=Math.hypot(dx,dy)||1;n1={nx:dx/l,ny:dy/l};}
+  if(tgtG){n2=borderNormal(tgtG,p2);}
+  else{const dx=p1.x-p2.x,dy=p1.y-p2.y,l=Math.hypot(dx,dy)||1;n2={nx:dx/l,ny:dy/l};}
+  return{
+    c1:{x:p1.x+n1.nx*arm,y:p1.y+n1.ny*arm},
+    c2:{x:p2.x+n2.nx*arm,y:p2.y+n2.ny*arm},
+  };
+}
+function makePath(p1,p2,c1,c2){
+  if(!c1||!c2){const dc=defaultControls(p1,p2);c1=dc.c1;c2=dc.c2;}
+  return'M'+p1.x+','+p1.y+' C'+c1.x+','+c1.y+' '+c2.x+','+c2.y+' '+p2.x+','+p2.y;
+}
+function midPoint(c1,c2){return{x:(c1.x+c2.x)/2,y:(c1.y+c2.y)/2};}
+
+// ── Parsing / node map / edge connections ─────────────────────────────
+function parseEdges(src){
+  const result=[];
+  // Skip lines inside state { } composite state blocks
+  let stateDepth=0;
+  for(const line of src.split('\n')){
+    const t=line.trim();
+    if(t.startsWith('%%'))continue;
+    // Detect composite state blocks: "state X {" or "state {"
+    if(/^state\b.*\{\s*$/.test(t)){stateDepth++;continue;}
+    if(t==='}'){if(stateDepth>0){stateDepth--;continue;}}
+    if(stateDepth>0)continue; // inside composite state — skip
+    const patterns=[
+      /\b([A-Za-z0-9_]+)(?:\s*(?:\[[^\]]*\]|\{[^}]*\}|\([^)]*\)))?\s*(?:-->|--[^\n>][^\n]*?>|==+>|-\.+-?>)\s*(?:\[[^\]]*\]|\{[^}]*\}|\([^)]*\))?\s*([A-Za-z0-9_]+)/g,
+      /([A-Za-z0-9_]+)\s*(?:<\|--|<\.\.|--> |\.\. >|--\|>|\|>--|--\*|--o)\s*([A-Za-z0-9_]+)/g,
+      /(\[\*\])\s*-->\s*([A-Za-z0-9_]+)/g,
+      /([A-Za-z0-9_]+)\s*-->\s*(\[\*\])/g,
+      /(\[\*\])\s*-->\s*(\[\*\])/g,
+    ];
+    for(const re of patterns){
+      re.lastIndex=0;
+      let m;
+      while((m=re.exec(line))!==null)
+        if(m[1]&&m[2])result.push({src:m[1],tgt:m[2]});
+    }
+  }
+  const seen=new Set();
+  return result.filter(e=>{
+    const k=e.src+'->'+e.tgt;
+    if(seen.has(k))return false;
+    seen.add(k);return true;
+  });
+}
+function nodeIdFrom(g,rid){
+  let id=g.id||'';
+  const prefix=(rid||currentRenderId)+'-';
+  if(id.startsWith(prefix))id=id.slice(prefix.length);
+  // Strip any diagram-type prefix: flowchart-, classId-, state-, etc.
+  id=id.replace(/^[a-zA-Z]+-/,'');
+  return id.replace(/-\d+$/,'');
+}
+function buildNodeMap(svgEl,rid){
+  const map=new Map();
+  svgEl.querySelectorAll('g.node').forEach(g=>{
+    if((g.getAttribute('class')||'').includes('statediagram-note'))return;
+    map.set(nodeIdFrom(g,rid),g);
+  });
+  // Also add clusters so subgraph-endpoint edges are resolved
+  const prefix=rid+'-';
+  svgEl.querySelectorAll('g.cluster').forEach(g=>{
+    let id=g.id||'';
+    if(id.startsWith(prefix))id=id.slice(prefix.length);
+    if(id)map.set(id,g);
+  });
+  return map;
+}
+function buildEdgeConnections(svgEl,rid,parsedEdges){
+  edgeConnections=[];
+  const nodeMap=buildNodeMap(svgEl,rid);
+
+  // Collect all edge paths directly from SVG — no parseEdges needed
+  // Mermaid path ids: "{rid}-L_{src}_{tgt}_{n}"
+  const edgePaths=[];
+  svgEl.querySelectorAll('path[id]').forEach(p=>{
+    const cls=p.getAttribute('class')||'';
+    if((cls.includes('edge')||cls.includes('flowchart-link')||cls.includes('transition')||cls.includes('relationshipLine'))&&!cls.includes('note-edge'))edgePaths.push(p);
+  });
+
+  // For each edge path, extract src/tgt from its id
+  edgePaths.forEach(p=>{
+    const id=p.id||'';
+    // Strip rid prefix: "mer-1-L_A_B_0" -> "L_A_B_0"
+    const prefix=rid+'-';
+    const local=id.startsWith(prefix)?id.slice(prefix.length):id;
+    // Match "L_{src}_{tgt}_{n}" (flowchart) or "id_{src}_{tgt}_{n}" (classDiagram)
+    let srcG=null,tgtG=null;
+    if(/^(L|id)_/.test(local)){
+      // Standard format: try all split points between src and tgt
+      const inner=local.replace(/^(?:L|id)_/,'').replace(/_\d+$/,'');
+      const parts=inner.split('_');
+      // Helper: strip diagram-type prefix and trailing -N from a split part
+      const stripPart=s=>s.replace(/^[a-zA-Z]+-/,'').replace(/-\d+$/,'');
+      for(let i=1;i<parts.length&&!srcG;i++){
+        const s=parts.slice(0,i).join('_');
+        const t=parts.slice(i).join('_');
+        // Try direct lookup first, then stripped version
+        srcG=nodeMap.get(s)||nodeMap.get(stripPart(s))||null;
+        tgtG=nodeMap.get(t)||nodeMap.get(stripPart(t))||null;
+        if(!srcG||!tgtG){srcG=null;tgtG=null;}
+      }
+    } else {
+      // Edge annotation format: path id is just the edge name (e.g. "e1")
+      // Look up src/tgt by scanning source for "src edgeName@arrow tgt"
+      const edgeName=local;
+      const re=new RegExp('([A-Za-z0-9_]+)\\s+'+edgeName+'@[^\\s]+\\s+([A-Za-z0-9_]+)');
+      const m=editor.value.match(re);
+      if(m){srcG=nodeMap.get(m[1]);tgtG=nodeMap.get(m[2]);}
+    }
+    if(!srcG||!tgtG)return;
+    const{p1,p2}=pathEndpoints(p);
+    const _isRect=isRectilinearPath(p);
+    if(_isRect){p._origD=p.getAttribute('d');p._origP1={...p1};}
+    const{c1,c2}=_isRect?linearControls(p1,p2):defaultControls(p1,p2,srcG,tgtG);
+    edgeConnections.push({pathEl:p,srcG,tgtG,p1,c1,c2,p2,rectilinear:_isRect});
+  });
+
+  // Fallback: if id parsing found nothing, zip positionally with parsedEdges
+  if(edgeConnections.length===0&&parsedEdges.length>0){
+    const _starSrc=nodeMap.get('root_start')||nodeMap.get('start');
+    const _starTgt=nodeMap.get('root_end')||nodeMap.get('end');
+    let ei=0;
+    edgePaths.forEach(p=>{
+      if(ei>=parsedEdges.length)return;
+      const{src,tgt}=parsedEdges[ei++];
+      const srcG=src==='[*]'?_starSrc:(nodeMap.get(src)||null);
+      const tgtG=tgt==='[*]'?_starTgt:(nodeMap.get(tgt)||null);
+      if(!srcG||!tgtG)return;
+      const{p1,p2}=pathEndpoints(p);
+      const _isRect2=isRectilinearPath(p);
+      if(_isRect2){p._origD=p.getAttribute('d');p._origP1={...p1};}
+      const{c1,c2}=_isRect2?linearControls(p1,p2):defaultControls(p1,p2,srcG,tgtG);
+      edgeConnections.push({pathEl:p,srcG,tgtG,p1,c1,c2,p2,rectilinear:_isRect2});
+    });
+  }
+}
+
+// ── Handles ───────────────────────────────────────────────────────────
+const HR_BASE=6.0,HC='#00c4a7',HL='#ffaa00';
+let HR=HR_BASE;
+let svgPxPerUnit=1; // CSS px per SVG user unit at cinner zoom=1
+function updateHandlePos(conn){
+  const _tot2=zoom*svgPxPerUnit;
+  const _r=HR/_tot2;const _sw=1.5/_tot2;const _lsw=2/_tot2;const _da=(6/_tot2)+','+(6/_tot2);
+  [conn.h1,conn.h2,conn.hc1,conn.hc2,conn.hl].forEach(h=>{if(h){h.setAttribute('r',_r);h.setAttribute('stroke-width',_sw);}});
+  [conn.stem1,conn.stem2].forEach(s=>{if(s){s.setAttribute('stroke-width',_lsw);s.setAttribute('stroke-dasharray',_da);}});
+  if(conn.h1){conn.h1.setAttribute('cx',conn.p1.x);conn.h1.setAttribute('cy',conn.p1.y);}
+  if(conn.h2){conn.h2.setAttribute('cx',conn.p2.x);conn.h2.setAttribute('cy',conn.p2.y);}
+  if(conn.hc1&&conn.c1){conn.hc1.setAttribute('cx',conn.c1.x);conn.hc1.setAttribute('cy',conn.c1.y);}
+  if(conn.hc2&&conn.c2){conn.hc2.setAttribute('cx',conn.c2.x);conn.hc2.setAttribute('cy',conn.c2.y);}
+  if(conn.stem1&&conn.p1&&conn.c1){
+    conn.stem1.setAttribute('x1',conn.p1.x);conn.stem1.setAttribute('y1',conn.p1.y);
+    conn.stem1.setAttribute('x2',conn.c1.x);conn.stem1.setAttribute('y2',conn.c1.y);
+  }
+  if(conn.stem2&&conn.p2&&conn.c2){
+    conn.stem2.setAttribute('x1',conn.p2.x);conn.stem2.setAttribute('y1',conn.p2.y);
+    conn.stem2.setAttribute('x2',conn.c2.x);conn.stem2.setAttribute('y2',conn.c2.y);
+  }
+  if(conn.hl&&conn.labelG){
+    const lt=parseTx(conn.labelG.getAttribute('transform'));
+    conn.hl.setAttribute('cx',lt.x);conn.hl.setAttribute('cy',lt.y);
+  }
+}
+function makeStem(layer,ep,cp){
+  const line=document.createElementNS('http://www.w3.org/2000/svg','line');
+  const _tot2=zoom*svgPxPerUnit;
+  line.setAttribute('x1',ep.x);line.setAttribute('y1',ep.y);
+  line.setAttribute('x2',cp.x);line.setAttribute('y2',cp.y);
+  line.setAttribute('stroke','rgba(255,255,255,0.25)');
+  line.setAttribute('stroke-width',2/_tot2);
+  line.setAttribute('stroke-dasharray',(6/_tot2)+','+(6/_tot2));
+  line.style.pointerEvents='none';
+  layer.appendChild(line);return line;
+}
+function mkCircle(layer,cx,cy,fill,cursor,data){
+  const h=document.createElementNS('http://www.w3.org/2000/svg','circle');
+  const _tot2=zoom*svgPxPerUnit;
+  h.setAttribute('cx',cx);h.setAttribute('cy',cy);h.setAttribute('r',HR/(zoom*svgPxPerUnit));
+  h.setAttribute('fill',fill);h.setAttribute('fill-opacity','0.45');
+  h.setAttribute('stroke','#aaa');h.setAttribute('stroke-width',1.5/_tot2);
+  h.style.cursor=cursor;
+  Object.entries(data).forEach(([k,v])=>h.dataset[k]=v);
+  layer.appendChild(h);return h;
+}
+
+function buildHandles(svgEl){
+  const old=svgEl.getElementById('handle-layer');if(old)old.remove();
+  const layer=document.createElementNS('http://www.w3.org/2000/svg','g');
+  layer.id='handle-layer';svgEl.appendChild(layer);
+  const labelGroups=[...svgEl.querySelectorAll('g.edgeLabel')];
+  edgeConnections.forEach((conn,i)=>{
+    if(!conn.pathEl)return;
+    if(conn.rectilinear)return; // no handles for rectilinear (swimlane) connections
+    // Faint hollow circle for src endpoint
+    conn.h1=mkCircle(layer,conn.p1.x,conn.p1.y,'transparent','crosshair',{handleType:'endpoint',edgeIdx:i,end:'src'});
+    conn.h1.setAttribute('fill-opacity','0');
+    conn.h1.setAttribute('stroke','rgba(255,255,255,0.25)');
+    // Faint hollow circle for tgt endpoint
+    conn.h2=mkCircle(layer,conn.p2.x,conn.p2.y,'transparent','crosshair',{handleType:'endpoint',edgeIdx:i,end:'tgt'});
+    conn.h2.setAttribute('fill-opacity','0');
+    conn.h2.setAttribute('stroke','rgba(255,255,255,0.25)');
+    if(conn.c1&&conn.c2){
+      // Two control point handles: hc1 near source, hc2 near target
+      // Dashed stem lines from control points to their endpoints
+      conn.stem1=makeStem(layer,conn.p1,conn.c1);
+      conn.stem2=makeStem(layer,conn.p2,conn.c2);
+      conn.hc1=mkCircle(layer,conn.c1.x,conn.c1.y,'#c084fc','move',{handleType:'ctrl',edgeIdx:i,end:'c1'});
+      conn.hc2=mkCircle(layer,conn.c2.x,conn.c2.y,'#00c4a7','move',{handleType:'ctrl',edgeIdx:i,end:'c2'});
+    }
+    const labelG=labelGroups[i];
+    if(labelG&&labelG.textContent.trim()){
+      conn.labelG=labelG;
+      const r=labelG.getBoundingClientRect();
+      if(r.width>0&&r.height>0){
+        const lsvg=toSVGCoords(svgEl,r.left+r.width/2,r.top+r.height/2);
+        conn.hl=mkCircle(layer,lsvg.x,lsvg.y,'#f97316','move',{handleType:'label',edgeIdx:i});
+        conn.hl.setAttribute('fill-opacity','0.45');
+      }
+    }
+  });
+  layer.addEventListener('mousedown',e=>{
+    if(spaceDown)return;
+    const h=e.target;if(!h.dataset.handleType)return;
+    e.stopPropagation();e.preventDefault();
+    const idx=+h.dataset.edgeIdx,conn=edgeConnections[idx];if(!conn)return;
+    const svgPt=toSVGCoords(svgEl,e.clientX,e.clientY);
+    if(h.dataset.handleType==='endpoint'){
+      const _isSrc=h.dataset.end==='src';
+      dragTarget={type:'endpoint',conn,end:h.dataset.end,svgEl,handle:h,
+        edgeKey:nodeIdFrom(conn.srcG)+'>'+nodeIdFrom(conn.tgtG),
+        before:{p:{...(_isSrc?conn.p1:conn.p2)},c:{...(_isSrc?conn.c1:conn.c2)}}};
+    }else if(h.dataset.handleType==='ctrl'){
+      dragTarget={type:'ctrl',conn,svgEl,handle:h,
+        ctrlEnd:h.dataset.end,startC:{...(h.dataset.end==='c1'?conn.c1:conn.c2)},
+        startSVG:svgPt,edgeKey:nodeIdFrom(conn.srcG)+'>'+nodeIdFrom(conn.tgtG),
+        before:{...(h.dataset.end==='c1'?conn.c1:conn.c2)}};
+    }else{
+      const lt=parseTx(conn.labelG.getAttribute('transform'));
+      dragTarget={type:'label',conn,svgEl,startLabelTx:lt,startSVG:svgPt,handle:h,
+        before:{...lt},edgeKey:nodeIdFrom(conn.srcG)+'>'+nodeIdFrom(conn.tgtG)};
+    }
+    dragSVGStart=svgPt;document.body.style.userSelect='none';
+  });
+
+  if(typeof previewMode!=='undefined'&&previewMode)applyPreviewVisibility({x:-9999,y:-9999});}
+
+// ── Drag (node mousedown only; window listeners below) ────────────────
+function getSubgraphMembers(subgraphId,src){
+  const members=new Set();
+  const lines=src.split('\n');
+  let inSubgraph=false,depth=0;
+  for(const line of lines){
+    const trimmed=line.trim();
+    const sgMatch=trimmed.match(/^subgraph\s+(\S+?)(?:\s*\[|\s*$)/);
+    if(sgMatch){if(sgMatch[1]===subgraphId){inSubgraph=true;depth=1;}else if(inSubgraph){depth++;}continue;}
+    if(trimmed==='end'){if(inSubgraph){depth--;if(depth<=0){inSubgraph=false;depth=0;}}continue;}
+    if(inSubgraph&&!trimmed.startsWith('subgraph')){
+        // Extract all node IDs from the line (handles a1-->a2, a1 & a2-->a3, etc.)
+        const allNodes=trimmed.matchAll(/\b([A-Za-z0-9_]+)\b(?=\s*(?:-->|---|-\.->|->>|-->>|===|~~~|\[|\(|\{|$|\s*&))/g);
+        for(const m of allNodes)members.add(m[1]);
+        // Also catch trailing targets like -->a2 or --text-->a2
+        const targets=trimmed.matchAll(/-->\s*([A-Za-z0-9_]+)/g);
+        for(const m of targets)members.add(m[1]);
+      }
+  }
+  return members;
+}
+function attachDrag(svgEl){
+  function makeEdgeOffsets_cluster(clusterG,clusterNodeId){
+    return edgeConnections
+      .filter(conn=>nodeIdFrom(conn.srcG)===clusterNodeId||nodeIdFrom(conn.tgtG)===clusterNodeId)
+      .map(conn=>({conn,isSrc:nodeIdFrom(conn.srcG)===clusterNodeId,
+        sp1:{...conn.p1},sc1:{...conn.c1},sc2:{...conn.c2},sp2:{...conn.p2}}));
+  }
+  function makeEdgeOffsets(nodeG){
+    // Snapshot current p1,c1,c2,p2 from conn (which now always uses defaultControls)
+    return edgeConnections
+      .filter(conn=>conn.srcG===nodeG||conn.tgtG===nodeG)
+      .map(conn=>{
+        const isSrc=conn.srcG===nodeG;
+        const _ltx=conn.labelG?parseTx(conn.labelG.getAttribute('transform')):null;
+        const _llt=conn.labelG?parseTx(conn.labelG.getAttribute('transform')):null;
+        return{conn,isSrc,
+          sp1:{...conn.p1},sc1:{...conn.c1},
+          sc2:{...conn.c2},sp2:{...conn.p2},
+          labelG:conn.labelG||null,slx:_llt?_llt.x:undefined,sly:_llt?_llt.y:undefined};
+      });
+  }
+
+  svgEl.querySelectorAll('g.node').forEach(g=>{
+    g.classList.add('drag-node');
+    g.addEventListener('mousedown',e=>{
+      if(e.button!==0||spaceDown)return;
+      if(e.metaKey||e.ctrlKey){
+        // Rule: if any selected cluster contains this node, ignore
+        if(isInsideSelectedCluster(g)){e.stopPropagation();return;}
+        setSelected(g,!isSelected(g));
+        e.stopPropagation();return;
+      }
+      e.stopPropagation();e.preventDefault();
+      const _nid=nodeIdFrom(g);
+      const _grp=isSelected(g);
+      if(!_grp)clearSelection();
+      // Collect all selected objects + inner nodes of selected clusters
+      const _selNodes=new Set(selectedNodes);
+      const _selClusters=new Set(selectedClusters);
+      // Add inner nodes of selected clusters
+      _selClusters.forEach(cl=>{
+        const _pfx=currentRenderId+'-';
+        const _clId=cl.id.startsWith(_pfx)?cl.id.slice(_pfx.length):cl.id;
+        const members=getSubgraphMembers(_clId,editor.value);
+        svgEl.querySelectorAll('g.node').forEach(n=>{
+          if(members.has(nodeIdFrom(n)))_selNodes.add(n);
+        });
+      });
+      const _selSet=new Set([g,..._selNodes,..._selClusters]);
+      const _peers=_grp?[..._selSet].filter(n=>n!==g):[];
+      // Build edge offsets
+      const _allEO=[];
+      edgeConnections.forEach(conn=>{
+        const srcSel=_selSet.has(conn.srcG);
+        const tgtSel=_selSet.has(conn.tgtG);
+        if(!srcSel&&!tgtSel)return;
+        const eo={conn,
+          sp1:{...conn.p1},sc1:{...conn.c1},
+          sc2:{...conn.c2},sp2:{...conn.p2}};
+        if(srcSel&&tgtSel){
+          eo.both=true;
+        }else eo.isSrc=srcSel;
+        // Always snapshot label position if present
+        if(conn.labelG){
+          const lt=parseTx(conn.labelG.getAttribute('transform'));
+          if(lt){eo.slx=lt.x;eo.sly=lt.y;eo.labelG=conn.labelG;}
+        }
+        _allEO.push(eo);
+      });
+      dragTarget={type:'node',g,svgEl,
+        startTx:parseTx(g.getAttribute('transform')),
+        edgeOffsets:_allEO,nodeId:_nid,edgesBefore:snapshotEdges([_nid]),
+        groupStarts:_peers.filter(n=>n!==g).map(n=>({g:n,startTx:parseTx(n.getAttribute('transform'))}))};
+      g.classList.add('dragging-node');
+      dragSVGStart=toSVGCoords(svgEl,e.clientX,e.clientY);
+      document.body.style.userSelect='none';
+    });
+  });
+
+  // Capture-phase cmd-click handler for class diagrams (foreignObject intercepts bubble)
+  svgEl.addEventListener('mousedown',e=>{
+    if(!(e.metaKey||e.ctrlKey))return;
+    if(e.button!==0||spaceDown)return;
+    const g=e.target.closest('g.node');
+    if(g){
+      // Rule: if any selected cluster contains this node, ignore the click
+      if(isInsideSelectedCluster(g)){e.stopPropagation();return;}
+      setSelected(g,!isSelected(g));
+      e.stopPropagation();return;
+    }
+    const cl=e.target.closest('g.cluster');
+    if(cl){
+      const wasSelected=isSelected(cl);
+      setSelected(cl,!wasSelected);
+      if(!wasSelected){
+        // Rule: when selecting a cluster, deselect any of its member nodes
+        const _pfx=currentRenderId+'-';
+        const _clId=cl.id.startsWith(_pfx)?cl.id.slice(_pfx.length):cl.id;
+        const members=getSubgraphMembers(_clId,editor.value);
+        [...selectedNodes].forEach(n=>{
+          if(members.has(nodeIdFrom(n)))setSelected(n,false);
+        });
+      }
+      e.stopPropagation();return;
+    }
+  },true); // capture phase
+
+  // Cluster (subgraph) drag — moves cluster border + all spatially contained nodes
+  svgEl.querySelectorAll('g.cluster').forEach(cluster=>{
+    cluster.addEventListener('mousedown',e=>{
+      if(e.button!==0||spaceDown)return;
+      if(e.metaKey||e.ctrlKey){
+        const _wasSelected=isSelected(cluster);
+        setSelected(cluster,!_wasSelected);
+        if(!_wasSelected){
+          const _pfx=currentRenderId+'-';
+          const _clId=cluster.id.startsWith(_pfx)?cluster.id.slice(_pfx.length):cluster.id;
+          const _members=getSubgraphMembers(_clId,editor.value);
+          [...selectedNodes].forEach(n=>{
+            if(_members.has(nodeIdFrom(n)))setSelected(n,false);
+          });
+        }
+        e.stopPropagation();return;
+      }
+      e.stopPropagation();e.preventDefault();
+
+      const _cp=currentRenderId+'-';
+      const _subgraphId=cluster.id.startsWith(_cp)?cluster.id.slice(_cp.length):cluster.id;
+      const _memberIds=getSubgraphMembers(_subgraphId,editor.value);
+      const innerNodes=[...svgEl.querySelectorAll('g.node')].filter(nodeG=>_memberIds.has(nodeIdFrom(nodeG)));
+
+      // Also include nested clusters whose stripped ID is in _memberIds
+      const _pfxC=currentRenderId+'-';
+      const innerClusters=[...svgEl.querySelectorAll('g.cluster,g.cluster.undefined')].filter(cl=>{
+        if(cl===cluster)return false;
+        const _clId=cl.id.startsWith(_pfxC)?cl.id.slice(_pfxC.length):cl.id;
+        return _memberIds.has(_clId);
+      });
+
+      // Also collect nodes belonging to any inner cluster (recursive)
+      const _allMemberIds=new Set(_memberIds);
+      innerClusters.forEach(cl=>{
+        const _clId=cl.id.startsWith(_pfxC)?cl.id.slice(_pfxC.length):cl.id;
+        getSubgraphMembers(_clId,editor.value).forEach(m=>_allMemberIds.add(m));
+      });
+      const _allInnerNodes=[...svgEl.querySelectorAll('g.node')].filter(n=>_allMemberIds.has(nodeIdFrom(n)));
+
+      // Snapshot each inner node's and inner cluster's starting translate
+      const nodeStarts=[..._allInnerNodes,...innerClusters].map(nodeG=>({
+        nodeG,
+        startTx:parseTx(nodeG.getAttribute('transform'))
+      }));
+
+      // Gather edge offsets for all inner nodes
+        const _innerIds=nodeStarts.map(ns=>nodeIdFrom(ns.nodeG));
+      const _clusterSelPeerClusters=[...selectedClusters].filter(cl=>cl!==cluster);
+      const _clusterSelPeers=[...selectedNodes].filter(n=>!nodeStarts.find(ns=>ns.nodeG===n));
+      _clusterSelPeerClusters.forEach(pcl=>{
+        const _pfx2=currentRenderId+'-';
+        const _pclId=pcl.id.startsWith(_pfx2)?pcl.id.slice(_pfx2.length):pcl.id;
+        const _pmembers=getSubgraphMembers(_pclId,editor.value);
+        svgEl.querySelectorAll('g.node').forEach(n=>{
+          if(_pmembers.has(nodeIdFrom(n)))_clusterSelPeers.push(n);
+        });
+      });
+      const _movingNodes=new Set([..._allInnerNodes,..._clusterSelPeers]);
+      const allEdgeOffsets=[];
+      edgeConnections.forEach(conn=>{
+        const srcM=_movingNodes.has(conn.srcG);
+        const tgtM=_movingNodes.has(conn.tgtG);
+        if(!srcM&&!tgtM)return;
+        const eo={conn,sp1:{...conn.p1},sc1:{...conn.c1},sc2:{...conn.c2},sp2:{...conn.p2}};
+        if(srcM&&tgtM){
+          eo.both=true;
+          if(conn.labelG){const lt=parseTx(conn.labelG.getAttribute('transform'));eo.slx=lt.x;eo.sly=lt.y;}
+        }else{eo.isSrc=srcM;}
+        allEdgeOffsets.push(eo);
+      });
+            const _pfx=currentRenderId+'-';
+      const _cnid=cluster.id.startsWith(_pfx)?cluster.id.slice(_pfx.length):cluster.id;
+      makeEdgeOffsets_cluster(cluster,_cnid).forEach(eo=>allEdgeOffsets.push(eo));
+      dragTarget={type:'cluster',g:cluster,svgEl,
+        startTx:parseTx(cluster.getAttribute('transform')),
+        nodeStarts,edgeOffsets:allEdgeOffsets,clusterId:cluster.id,clusterNodeId:_cnid,
+        edgesBefore:snapshotEdges([..._innerIds,_cnid]),
+        peerStarts:[..._clusterSelPeers.map(n=>({g:n,startTx:parseTx(n.getAttribute('transform'))})),..._clusterSelPeerClusters.map(cl=>({g:cl,startTx:parseTx(cl.getAttribute('transform'))}))],
+        allMovingNodes:[..._allInnerNodes,...innerClusters,..._clusterSelPeers]};
+      cluster.classList.add('dragging-node');
+      dragSVGStart=toSVGCoords(svgEl,e.clientX,e.clientY);
+      document.body.style.userSelect='none';
+    });
+  });
+}
+
+// Live edge redraw during node drag — translate attached endpoints by node delta
+function liveRedrawClusterEdges(innerNodes,clusterG,dx,dy){
+  const innerSet=new Set(innerNodes);
+  const visited=new Set();
+  edgeConnections.forEach(conn=>{
+    if(!conn.pathEl)return;
+    const srcIn=innerSet.has(conn.srcG)||(clusterG&&conn.srcG===clusterG);
+    const tgtIn=innerSet.has(conn.tgtG)||(clusterG&&conn.tgtG===clusterG);
+    if(!srcIn&&!tgtIn)return;
+    const key=conn.pathEl;
+    if(visited.has(key))return;
+    visited.add(key);
+    if(conn.rectilinear){
+      if(srcIn){conn.p1={x:conn.p1.x+dx,y:conn.p1.y+dy};setPathD(conn.pathEl,conn.p1,conn.p2,conn.c1,conn.c2,true);}
+      return;
+    }
+    if(srcIn&&tgtIn){
+      conn.p1={x:conn.p1.x+dx,y:conn.p1.y+dy}; conn.c1={x:conn.c1.x+dx,y:conn.c1.y+dy};
+      conn.c2={x:conn.c2.x+dx,y:conn.c2.y+dy}; conn.p2={x:conn.p2.x+dx,y:conn.p2.y+dy};
+    }else if(srcIn){
+      conn.p1={x:conn.p1.x+dx,y:conn.p1.y+dy}; conn.c1={x:conn.c1.x+dx,y:conn.c1.y+dy};
+    }else{
+      conn.p2={x:conn.p2.x+dx,y:conn.p2.y+dy}; conn.c2={x:conn.c2.x+dx,y:conn.c2.y+dy};
+    }
+    setPathD(conn.pathEl,conn.p1,conn.p2,conn.c1,conn.c2,false);
+    // Move label with the connection
+    if(conn.labelG){
+      const lt=parseTx(conn.labelG.getAttribute('transform'));
+      if(lt)setTx(conn.labelG,lt.x+dx,lt.y+dy);
+    }
+    updateHandlePos(conn);
+  });
+}
+
+
+function liveRedrawEdgesFromOffsets(nodeG,edgeOffsets,dx,dy){
+  if(!edgeOffsets||!edgeOffsets.length)return;
+  dx=dx||0; dy=dy||0;
+  edgeOffsets.forEach(({conn,isSrc,both,sp1,sc1,sc2,sp2,labelG,slx,sly})=>{
+    if(!conn.pathEl)return;
+    if(conn.rectilinear){
+      // Only translate full path when src (non-arrow) end moves
+      if(isSrc||both){conn.p1={x:sp1.x+dx,y:sp1.y+dy};setPathD(conn.pathEl,conn.p1,conn.p2,conn.c1,conn.c2,true);}
+      return;
+    }
+    if(both){
+      conn.p1={x:sp1.x+dx,y:sp1.y+dy}; conn.c1={x:sc1.x+dx,y:sc1.y+dy};
+      conn.c2={x:sc2.x+dx,y:sc2.y+dy}; conn.p2={x:sp2.x+dx,y:sp2.y+dy};
+    }else if(isSrc){
+      conn.p1={x:sp1.x+dx,y:sp1.y+dy}; conn.c1={x:sc1.x+dx,y:sc1.y+dy};
+      conn.p2={...sp2}; conn.c2={...sc2};
+    }else{
+      conn.p2={x:sp2.x+dx,y:sp2.y+dy}; conn.c2={x:sc2.x+dx,y:sc2.y+dy};
+      conn.p1={...sp1}; conn.c1={...sc1};
+    }
+    setPathD(conn.pathEl,conn.p1,conn.p2,conn.c1,conn.c2,false);
+    // Move label with the box using mousedown-snapshotted position
+    if(labelG&&slx!==undefined){setTx(labelG,slx+dx,sly+dy);}
+    updateHandlePos(conn);
+  });
+}
+
+
+window.addEventListener('mousemove',e=>{
+  if(previewMode&&currentSVG){
+    const svgPt=toSVGCoords(currentSVG,e.clientX,e.clientY);
+    applyPreviewVisibility(svgPt);
+  }
+  if(!dragTarget)return;
+  const svgEl=dragTarget.svgEl||currentSVG;
+  const cur=toSVGCoords(svgEl,e.clientX,e.clientY);
+  if(dragTarget.type==='node'||dragTarget.type==='cluster'){
+    const dx=cur.x-dragSVGStart.x,dy=cur.y-dragSVGStart.y;
+    // Store current total delta for use by liveRedrawEdgesFromOffsets
+    dragTarget._curDx=dx; dragTarget._curDy=dy;
+    setTx(dragTarget.g,dragTarget.startTx.x+dx,dragTarget.startTx.y+dy);
+    if(dragTarget.groupStarts)dragTarget.groupStarts.forEach(({g:og,startTx:osTx})=>{
+      setTx(og,osTx.x+dx,osTx.y+dy);
+    });
+    if(dragTarget.peerStarts)dragTarget.peerStarts.forEach(({g:pg,startTx:psTx})=>{
+      setTx(pg,psTx.x+dx,psTx.y+dy);
+    });
+    // For clusters, also move all inner nodes
+    if(dragTarget.type==='cluster'&&dragTarget.nodeStarts){
+      dragTarget.nodeStarts.forEach(({nodeG,startTx})=>{
+        setTx(nodeG,startTx.x+dx,startTx.y+dy);
+      });
+    }
+    if(!dragTarget.rafPending){
+      dragTarget.rafPending=true;
+      const type=dragTarget.type;
+      const offsets=dragTarget.edgeOffsets;
+      const g=dragTarget.g;
+      const nodes=dragTarget.allMovingNodes||(dragTarget.nodeStarts?dragTarget.nodeStarts.map(ns=>ns.nodeG):null);
+      const ddx=dx-(dragTarget._lastDx||0);
+      const ddy=dy-(dragTarget._lastDy||0);
+      dragTarget._lastDx=dx; dragTarget._lastDy=dy;
+      const _dx=dragTarget._curDx||0, _dy=dragTarget._curDy||0;
+      requestAnimationFrame(()=>{
+        if(dragTarget)dragTarget.rafPending=false;
+        if(type==='cluster'&&nodes){
+          liveRedrawClusterEdges(nodes,dragTarget?dragTarget.g:null,ddx,ddy);
+        }else{
+          liveRedrawEdgesFromOffsets(g,offsets,_dx,_dy);
+        }
+      });
+    }
+  }else if(dragTarget.type==='endpoint'){
+    const conn=dragTarget.conn;
+    if(dragTarget.end==='src'){
+      const dx=cur.x-conn.p1.x,dy=cur.y-conn.p1.y;
+      conn.p1={x:cur.x,y:cur.y};
+      conn.c1={x:conn.c1.x+dx,y:conn.c1.y+dy};
+    }else{
+      const dx=cur.x-conn.p2.x,dy=cur.y-conn.p2.y;
+      conn.p2={x:cur.x,y:cur.y};
+      conn.c2={x:conn.c2.x+dx,y:conn.c2.y+dy};
+    }
+    setPathD(conn.pathEl,conn.p1,conn.p2,conn.c1,conn.c2,conn.rectilinear);
+    updateHandlePos(conn);
+  }else if(dragTarget.type==='ctrl'){
+    const conn=dragTarget.conn;
+    const dx=cur.x-dragTarget.startSVG.x,dy=cur.y-dragTarget.startSVG.y;
+    const newPt={x:dragTarget.startC.x+dx,y:dragTarget.startC.y+dy};
+    if(dragTarget.ctrlEnd==='c1') conn.c1=newPt;
+    else conn.c2=newPt;
+    setPathD(conn.pathEl,conn.p1,conn.p2,conn.c1,conn.c2,conn.rectilinear);
+    updateHandlePos(conn);
+  }else if(dragTarget.type==='label'){
+    const dx=cur.x-dragTarget.startSVG.x,dy=cur.y-dragTarget.startSVG.y;
+    const lt=dragTarget.startLabelTx;
+    setTx(dragTarget.conn.labelG,lt.x+dx,lt.y+dy);
+    dragTarget.handle.setAttribute('cx',lt.x+dx);
+    dragTarget.handle.setAttribute('cy',lt.y+dy);
+  }
+});
+
+// Snap a point to the nearest point on the actual node border,
+// offset slightly outward so arrowheads clear the border.
+function snapAllEndpoints(){
+  if(!currentSVG)return;
+  const _isClass=/^\s*classDiagram/i.test(editor.value);
+  edgeConnections.forEach(conn=>{
+    if(!conn.pathEl||!conn.srcG||!conn.tgtG)return;
+    // Snap source endpoint
+    const _hasSrcArrow=(()=>{
+      const attr=conn.pathEl.getAttribute('marker-start');
+      return attr&&attr!=='none'&&attr!=='';
+    })();
+    const _srcMarker=conn.pathEl.getAttribute('marker-start')||'';
+    const _srcZero=false;
+    const _isState=/stateDiagram/i.test(editor.value);
+    const _srcDepend=_isClass&&/dependency/i.test(_srcMarker);
+    const _srcOpts=_isState&&_hasSrcArrow?{offset:2}:_srcDepend?{offset:7}:{};
+    const snappedSrc=snapToBorder(conn.srcG,conn.p1,_hasSrcArrow,_isClass,_srcZero,_srcOpts);
+    const dxSrc=snappedSrc.x-conn.p1.x,dySrc=snappedSrc.y-conn.p1.y;
+    conn.p1=snappedSrc;conn.c1={x:conn.c1.x+dxSrc,y:conn.c1.y+dySrc};
+    // Snap target endpoint
+    const _hasTgtArrow=(()=>{
+      const attr=conn.pathEl.getAttribute('marker-end');
+      return attr&&attr!=='none'&&attr!=='';
+    })();
+    const _tgtMarker=conn.pathEl.getAttribute('marker-end')||'';
+    const _tgtZero=false;
+    const _tgtDepend=_isClass&&/dependency/i.test(_tgtMarker);
+    const _tgtOpts=_isState&&_hasTgtArrow?{offset:2}:_tgtDepend?{offset:7}:{};
+    const snappedTgt=snapToBorder(conn.tgtG,conn.p2,_hasTgtArrow,_isClass,_tgtZero,_tgtOpts);
+    const dxTgt=snappedTgt.x-conn.p2.x,dyTgt=snappedTgt.y-conn.p2.y;
+    conn.p2=snappedTgt;conn.c2={x:conn.c2.x+dxTgt,y:conn.c2.y+dyTgt};
+    setPathD(conn.pathEl,conn.p1,conn.p2,conn.c1,conn.c2,conn.rectilinear);
+  });
+  buildHandles(currentSVG);
+}
+
+function snapToBorder(nodeG, pt, hasArrow=true, bigArrow=false, zeroOffset=false, opts={}){
+  // opts.offset: explicit override (takes priority over all flags)
+  let OFFSET;
+  if(!hasArrow)            OFFSET=0;
+  else if(zeroOffset)      OFFSET=0;
+  else if(bigArrow)        OFFSET=18;
+  else                     OFFSET=5;
+  if(opts.offset!==undefined) OFFSET=opts.offset;
+  const b=absBox(nodeG);
+  const cx=b.cx, cy=b.cy;
+
+  // Check if node is diamond-shaped (contains a polygon or rotated rect)
+  const poly=nodeG.querySelector('polygon')||nodeG.querySelector('path.label-container');
+  const isDiamond=nodeG.querySelector('polygon')!==null||
+    (nodeG.getAttribute('class')||'').includes('diamond');
+
+  if(isDiamond){
+    // Diamond corners: top, right, bottom, left
+    const hw=b.w/2, hh=b.h/2;
+    const diamond=[
+      {x:cx,    y:b.y   },  // top
+      {x:b.x+b.w, y:cy  },  // right
+      {x:cx,    y:b.y+b.h}, // bottom
+      {x:b.x,   y:cy    },  // left
+    ];
+    // Find intersection of ray from center toward pt with diamond edges
+    const edges=[
+      [diamond[0],diamond[1]],[diamond[1],diamond[2]],
+      [diamond[2],diamond[3]],[diamond[3],diamond[0]]
+    ];
+    let best=null, bestD=Infinity;
+    edges.forEach(([a,e])=>{
+      const hit=raySegIntersect(cx,cy,pt.x,pt.y,a.x,a.y,e.x,e.y);
+      if(hit){
+        const d=Math.hypot(hit.x-pt.x,hit.y-pt.y);
+        if(d<bestD){bestD=d;best=hit;}
+      }
+    });
+    if(best){
+      // Offset outward from center
+      const len=Math.hypot(best.x-cx,best.y-cy)||1;
+      return{x:best.x+(best.x-cx)/len*OFFSET,
+             y:best.y+(best.y-cy)/len*OFFSET};
+    }
+  }
+
+  // Default: snap to nearest rectangle side
+  const dists=[
+    {side:'top',    d:Math.abs(pt.y-b.y)},
+    {side:'bottom', d:Math.abs(pt.y-(b.y+b.h))},
+    {side:'left',   d:Math.abs(pt.x-b.x)},
+    {side:'right',  d:Math.abs(pt.x-(b.x+b.w))},
+  ];
+  const nearest=dists.reduce((a,b)=>a.d<b.d?a:b);
+  switch(nearest.side){
+    case 'top':
+      return{x:Math.max(b.x,Math.min(b.x+b.w,pt.x)), y:b.y-OFFSET};
+    case 'bottom':
+      return{x:Math.max(b.x,Math.min(b.x+b.w,pt.x)), y:b.y+b.h+OFFSET};
+    case 'left':
+      return{x:b.x-OFFSET, y:Math.max(b.y,Math.min(b.y+b.h,pt.y))};
+    case 'right':
+      return{x:b.x+b.w+OFFSET, y:Math.max(b.y,Math.min(b.y+b.h,pt.y))};
+  }
+}
+
+// Ray from (rx,ry) through (tx,ty), intersect with segment (ax,ay)-(bx,by)
+function raySegIntersect(rx,ry,tx,ty,ax,ay,bx,by){
+  const dx=tx-rx, dy=ty-ry;
+  const ex=bx-ax, ey=by-ay;
+  const denom=dx*ey-dy*ex;
+  if(Math.abs(denom)<1e-10)return null;
+  const t=((ax-rx)*ey-(ay-ry)*ex)/denom;
+  const u=((ax-rx)*dy-(ay-ry)*dx)/denom;
+  if(t>=0&&u>=0&&u<=1)return{x:rx+t*dx,y:ry+t*dy};
+  return null;
+}
+
+window.addEventListener('mouseup',()=>{
+  if(!dragTarget)return;
+  const target=dragTarget;dragTarget=null;
+  document.body.style.userSelect='';
+  // Cancel any pending rAF and do a final edge redraw with correct delta
+  if(target.type==='node'||target.type==='cluster'){
+    // Flush final positions immediately before anything else
+    if(target.type==='node'&&target.edgeOffsets&&target.edgeOffsets.length){
+      liveRedrawEdgesFromOffsets(target.g,target.edgeOffsets,target._curDx||0,target._curDy||0);
+    }
+    target.g.classList.remove('dragging-node');
+    currentSVG.querySelectorAll('g.node').forEach(g=>{
+      const nid=nodeIdFrom(g);
+      if(g===target.g||userPositions.has(nid))
+        userPositions.set(nid,parseTx(g.getAttribute('transform')));
+    });
+    if(target.type==='cluster'){
+      const afterCl=parseTx(target.g.getAttribute('transform'));
+      userPositions.set('cluster:'+target.g.id,afterCl);
+      const nodesAfter=[];
+      if(target.nodeStarts)target.nodeStarts.forEach(({nodeG})=>{
+        const nid=nodeIdFrom(nodeG);const pos=parseTx(nodeG.getAttribute('transform'));
+        userPositions.set(nid,pos);nodesAfter.push({nodeId:nid,pos});
+      });
+      const innerIds=(target.nodeStarts||[]).map(ns=>nodeIdFrom(ns.nodeG));
+      pushHistory({type:'cluster-move',clusterId:target.clusterId||target.g.id,
+        clusterBefore:target.startTx,clusterAfter:afterCl,
+        nodesBefore:(target.nodeStarts||[]).map(ns=>({nodeId:nodeIdFrom(ns.nodeG),pos:ns.startTx})),
+        nodesAfter,edgesBefore:target.edgesBefore||[],edgesAfter:snapshotEdges([...innerIds,target.clusterNodeId||''])});
+    }
+    // Edges are already in their final positions from liveRedrawEdges.
+    // Just sync conn.p1/p2/c1/c2 from the live path d attributes,
+    // then rebuild handles to match.
+    edgeConnections.forEach(conn=>{
+      if(!conn.pathEl)return;
+      const{p1,c1,c2,p2}=pathEndpoints(conn.pathEl);
+      conn.p1=p1;conn.c1=c1;conn.c2=c2;conn.p2=p2;
+    });
+    buildHandles(currentSVG);
+    if(target.nodeId)pushHistory({type:'node-move',nodeId:target.nodeId,
+      before:target.startTx,after:parseTx(target.g.getAttribute('transform')),
+      edgesBefore:target.edgesBefore,edgesAfter:snapshotEdges([target.nodeId])});
+  } else if(target.type==='endpoint'||target.type==='ctrl'||target.type==='label'){
+    if(target.type==='endpoint'){
+      const conn=target.conn,isSrc=target.end==='src';
+      const nodeG=isSrc?conn.srcG:conn.tgtG;
+      if(nodeG&&!altDown){
+        // Detect actual arrowhead presence from path marker attributes
+        const _hasArrow=(()=>{
+          const p=conn.pathEl;
+          if(!p)return!isSrc;
+          const attr=isSrc?p.getAttribute('marker-start'):p.getAttribute('marker-end');
+          if(attr&&attr!=='none'&&attr!=='')return true;
+          return false;
+        })();
+        const _isClassDiagram=/^\s*classDiagram/i.test(editor.value);
+        const _dragMarker=(isSrc?conn.pathEl.getAttribute('marker-start'):conn.pathEl.getAttribute('marker-end'))||'';
+        const _isStateDiag=/stateDiagram/i.test(editor.value);
+        const _dragDepend=_isClassDiagram&&/dependency/i.test(_dragMarker);
+        const _dragOpts=_isStateDiag&&_hasArrow?{offset:2}:_dragDepend?{offset:7}:{};
+        const snapped=snapToBorder(nodeG,isSrc?conn.p1:conn.p2,_hasArrow,_isClassDiagram,false,_dragOpts);
+        if(isSrc){const dx=snapped.x-conn.p1.x,dy=snapped.y-conn.p1.y;
+          conn.p1=snapped;conn.c1={x:conn.c1.x+dx,y:conn.c1.y+dy};}
+        else{const dx=snapped.x-conn.p2.x,dy=snapped.y-conn.p2.y;
+          conn.p2=snapped;conn.c2={x:conn.c2.x+dx,y:conn.c2.y+dy};}
+        setPathD(conn.pathEl,conn.p1,conn.p2,conn.c1,conn.c2,conn.rectilinear);
+      }
+      if(target.edgeKey){
+        const _isSrc=target.end==='src';
+        pushHistory({type:'endpoint-move',edgeKey:target.edgeKey,end:target.end,
+          before:target.before,
+          after:{p:{...(_isSrc?conn.p1:conn.p2)},c:{...(_isSrc?conn.c1:conn.c2)}}});
+      }
+    }else if(target.type==='ctrl'&&target.edgeKey){
+      const conn=target.conn,pt=target.ctrlEnd==='c1'?conn.c1:conn.c2;
+      pushHistory({type:'ctrl-move',edgeKey:target.edgeKey,ctrl:target.ctrlEnd,
+        before:target.before,after:{...pt}});
+    }else if(target.type==='label'&&target.edgeKey&&target.labelG){
+      pushHistory({type:'label-move',edgeKey:target.edgeKey,
+        before:target.before,after:parseTx(target.labelG.getAttribute('transform'))});
+    }
+    buildHandles(currentSVG);
+  }
+});
+
+// ── Render ────────────────────────────────────────────────────────────
+async function render(){
+  userPositions.clear();edgeSnapshot.clear();
+  await renderWithPositions(null);
+}
+
+async function renderWithPositions(movedNodeId){
+  const src=editor.value.trim();
+  if(!src){ph.style.display='flex';return;}
+  const parsedEdges=parseEdges(src);
+  let svgText;
+  const rid='mer-'+(++renderCount);
+  try{const r=await mermaid.render(rid,src);svgText=r.svg;setErr(null);}
+  catch(e){setErr(e.message||String(e));return;}
+  ph.style.display='none';
+  const doc=new DOMParser().parseFromString(svgText,'image/svg+xml');
+  const svgEl=doc.querySelector('svg');if(!svgEl)return;
+  svgEl.removeAttribute('width');svgEl.removeAttribute('height');
+  svgEl.style.overflow='visible';
+  cinner.innerHTML='';cinner.appendChild(svgEl);
+  // Mermaid style kept intact — our CSS uses !important to override colors
+  // Force edge stroke color directly in JS — CSS loses to Mermaid's scoped #id rules
+  // Fix marker colors for diagrams that don't use .marker CSS class
+  svgEl.querySelectorAll('defs marker path, defs marker polygon').forEach(el=>{
+    const marker=el.closest('marker');
+    const mid=marker&&marker.id||'';
+    const mcls=marker&&marker.getAttribute('class')||'';
+    if(mid.includes('stateDiagram')||mid.includes('barbEnd')||mid.includes('requirement')){
+      el.style.setProperty('stroke','var(--edge-color)','important');
+      el.style.setProperty('fill','var(--edge-color)','important');
+    } else if(mcls.includes('er')){
+      el.style.setProperty('stroke','var(--edge-color)','important');
+    }
+  });
+  // ER diagram circles (hollow markers) should stay white/transparent
+  svgEl.querySelectorAll('defs marker circle').forEach(el=>{
+    const mcls=el.closest('marker')&&el.closest('marker').getAttribute('class')||'';
+    if(mcls.includes('er')){
+      el.style.setProperty('stroke','var(--edge-color)','important');
+      // Both zeroOrMore and zeroOrOne use a filled circle for "zero"
+      if(mcls.includes('zeroOrMore')||mcls.includes('zeroOrOne'))
+        el.style.setProperty('fill','var(--edge-color)','important');
+    }
+  });
+  svgEl.querySelectorAll('path.flowchart-link, path.relation, path.transition, path.relationshipLine, line.branch').forEach(p=>{
+    p.style.setProperty('stroke','var(--edge-color)','important');
+    p.style.setProperty('fill','none','important');
+  });
+  // Don't override class diagram markers — they use currentColor/CSS for hollow fills
+  const _isClassDiag=/^\s*classDiagram/i.test(editor.value);
+  if(!_isClassDiag){
+    svgEl.querySelectorAll('.marker path, .arrowheadPath, path.arrowMarkerPath').forEach(p=>{
+      // Skip ER markers — handled separately with fill:none
+      const _mc=p.closest('marker');
+      if(_mc&&(_mc.getAttribute('class')||'').includes('er'))return;
+      p.style.setProperty('fill','var(--edge-color)','important');
+      p.style.setProperty('stroke','var(--edge-color)','important');
+    });
+  }
+  // Kill pink background — it's on <p> elements inside edge label foreignObjects
+  svgEl.querySelectorAll('p').forEach(el=>{
+    el.style.setProperty('background','transparent','important');
+    el.style.setProperty('background-color','transparent','important');
+  });
+  svgEl.querySelectorAll('.edgeLabel rect, .edgeLabel foreignObject, .edgeLabel div, .edgeLabel span').forEach(el=>{
+    el.style.setProperty('background','transparent','important');
+    el.style.setProperty('fill','transparent','important');
+    if(el.hasAttribute('fill'))el.setAttribute('fill','transparent');
+  });
+  currentSVG=svgEl;currentRenderId=rid;
+  await new Promise(r=>requestAnimationFrame(r));
+  await new Promise(r=>requestAnimationFrame(r));
+
+  // Re-apply pinned node positions
+  if(userPositions.size>0){
+    svgEl.querySelectorAll('g.node').forEach(g=>{
+      const pos=userPositions.get(nodeIdFrom(g,rid));
+      if(pos)setTx(g,pos.x,pos.y);
+    });
+    svgEl.querySelectorAll('g.cluster').forEach(cl=>{
+      const pos=userPositions.get('cluster:'+cl.id);
+      if(pos)setTx(cl,pos.x,pos.y);
+    });
+    await new Promise(r=>requestAnimationFrame(r));
+  }
+
+  buildEdgeConnections(svgEl,rid,parsedEdges);
+  // Normalize all edge paths to clean cubic beziers immediately after render,
+  // so dragging later doesn't cause a sudden curve change on first move.
+  edgeConnections.forEach(conn=>{
+    if(!conn.pathEl)return;
+    setPathD(conn.pathEl,conn.p1,conn.p2,conn.c1,conn.c2,conn.rectilinear);
+  });
+
+  // For each edge: if it touches the moved node, recalculate that end fresh.
+  // For all other edges, restore geometry from the snapshot taken on mousedown.
+  if(movedNodeId&&edgeSnapshot.size>0){
+    edgeConnections.forEach(conn=>{
+      if(!conn.pathEl)return;
+      const srcId=nodeIdFrom(conn.srcG),tgtId=nodeIdFrom(conn.tgtG);
+      const key=srcId+'>'+tgtId;
+      const snap=edgeSnapshot.get(key);
+      const srcMoved=(srcId===movedNodeId);
+      const tgtMoved=(tgtId===movedNodeId);
+
+      if(!srcMoved&&!tgtMoved){
+        // Edge doesn't touch moved node — restore snapshot exactly
+        if(snap){
+          conn.p1={...snap.p1};conn.c1={...snap.c1};
+          conn.c2={...snap.c2};conn.p2={...snap.p2};
+          setPathD(conn.pathEl,conn.p1,conn.p2,conn.c1,conn.c2,conn.rectilinear);
+        }
+      }else{
+        // Edge touches moved node — recalculate the moved end, restore the free end
+        const sb=absBox(conn.srcG),tb=absBox(conn.tgtG);
+        if(srcMoved){
+          conn.p1=borderPt(sb,tb.cx,tb.cy);
+          if(snap){conn.p2={...snap.p2};conn.c2={...snap.c2};}
+          const dc=defaultControls(conn.p1,conn.p2);conn.c1=dc.c1;
+        }else{
+          conn.p2=borderPt(tb,sb.cx,sb.cy,10);
+          if(snap){conn.p1={...snap.p1};conn.c1={...snap.c1};}
+          const dc=defaultControls(conn.p1,conn.p2);conn.c2=dc.c2;
+        }
+        setPathD(conn.pathEl,conn.p1,conn.p2,conn.c1,conn.c2,conn.rectilinear);
+      }
+    });
+  }
+
+  await new Promise(r=>requestAnimationFrame(r));
+  // Compute px per SVG unit at current zoom, then normalize to zoom=1
+  {
+    const _vb=svgEl.viewBox&&svgEl.viewBox.baseVal;
+    const _sw=svgEl.getBoundingClientRect().width;
+    if(_vb&&_vb.width>0&&_sw>0) svgPxPerUnit=(_sw/zoom)/_vb.width;
+    else svgPxPerUnit=1;
+  }
+  // Re-apply Mermaid 'style' directive inline styles (these beat our CSS !important)
+  svgEl.querySelectorAll('.node rect,.node circle,.node ellipse,.node polygon,.node path').forEach(el=>{
+    if(el.closest('defs'))return;
+    const s=el.getAttribute('style');
+    if(!s||!s.trim())return;
+    s.split(';').forEach(prop=>{
+      const col=prop.indexOf(':');
+      if(col===-1)return;
+      const key=prop.slice(0,col).trim();
+      const val=prop.slice(col+1).trim();
+      if(key&&val)el.style.setProperty(key,val,'important');
+    });
+  });
+  buildHandles(svgEl);
+  attachDrag(svgEl);
+  applyTx();
+}
+
+function setErr(msg){
+  if(msg){errbox.style.display='block';errbox.textContent='Error: '+msg;dot.classList.add('err');}
+  else{errbox.style.display='none';dot.classList.remove('err');}
+}
+editor.addEventListener('paste',()=>{undoStack=[];redoStack=[];updateUndoButtons();});
+editor.addEventListener('input',async ()=>{
+  undoStack=[];redoStack=[];updateUndoButtons();
+  // Strip <br/> tags in place so Mermaid always gets clean input
+  const v=editor.value;
+  const cleaned=v.replace(/<br\s*\/?>/gi,' ');
+  if(cleaned!==v){
+    const pos=editor.selectionStart;
+    editor.value=cleaned;
+    editor.selectionStart=editor.selectionEnd=pos;
+  }
+  clearTimeout(renderTimer);
+  // Check if pasted content contains merman state section
+  const _v=editor.value;
+  const _di=_v.indexOf('\n'+DELIM+'\n');
+  if(_di!==-1){
+    // Process as merman inline paste — same logic as processFile
+    const _src=_v.slice(0,_di).trim().replace(/<br\s*\/?>/gi,' ');
+    const _stateJson=_v.slice(_di+DELIM.length+2).trim();
+    clearTimeout(renderTimer);
+    editor.value=_src;
+    undoStack=[];redoStack=[];updateUndoButtons();
+    userPositions.clear();edgeSnapshot.clear();
+    await renderWithPositions(null);
+    try{
+      const _state=yamlToState(_stateJson);
+      if(_state.nodes){
+        Object.entries(_state.nodes).forEach(([k,v])=>userPositions.set(k,v));
+      }
+      await renderWithPositions(null);
+      if(_state.edges&&edgeConnections.length){
+        _state.edges.forEach(saved=>{
+          const conn=edgeConnections.find(c=>
+            nodeIdFrom(c.srcG)===saved.src&&nodeIdFrom(c.tgtG)===saved.tgt);
+          if(!conn||!conn.pathEl)return;
+          conn.p1=saved.p1;conn.c1=saved.c1;conn.c2=saved.c2;conn.p2=saved.p2;
+          setPathD(conn.pathEl,conn.p1,conn.p2,conn.c1,conn.c2,conn.rectilinear);
+        });
+        requestAnimationFrame(()=>requestAnimationFrame(()=>{buildHandles(currentSVG);fitView();})); // skip snap — positions restored from file
+      }
+      if(_state.labels){
+        _state.labels.forEach(saved=>{
+          const conn=edgeConnections.find(c=>
+            nodeIdFrom(c.srcG)===saved.src&&nodeIdFrom(c.tgtG)===saved.tgt);
+          if(!conn||!conn.labelG)return;
+          setTx(conn.labelG,saved.tx.x,saved.tx.y);
+        });
+        requestAnimationFrame(()=>requestAnimationFrame(()=>{
+          buildHandles(currentSVG);
+          fitView(); // skip snap — positions restored from file
+        }));
+      }
+      if(!(_state.edges&&edgeConnections.length)&&!_state.labels){
+        snapAllEndpoints(); // no saved geometry — snap normally
+        requestAnimationFrame(()=>fitView());
+      }
+    }catch(err){
+      alert('Could not restore diagram state: '+err.message);
+    }
+    return;
+  }
+  renderTimer=setTimeout(()=>render().then(()=>{snapAllEndpoints();requestAnimationFrame(()=>fitView());}),450);
+});
+
+// ── Pan & Zoom ────────────────────────────────────────────────────────
+function applyTx(){
+  cinner.style.transform='translate('+panX+'px,'+panY+'px) scale('+zoom+')';
+  if(currentSVG){
+    const _tot=zoom*svgPxPerUnit;
+    const _r=HR/_tot;const _sw=1.5/_tot;const _lsw=2/_tot;const _da=(6/_tot)+','+(6/_tot);
+    currentSVG.querySelectorAll('#handle-layer circle').forEach(h=>{h.setAttribute('r',_r);h.setAttribute('stroke-width',_sw);});
+    currentSVG.querySelectorAll('#handle-layer line').forEach(l=>{l.setAttribute('stroke-width',_lsw);l.setAttribute('stroke-dasharray',_da);});
+  }
+}
+cwrap.addEventListener('wheel',e=>{
+  e.preventDefault();
+  const r=cwrap.getBoundingClientRect();
+  const mx=e.clientX-r.left,my=e.clientY-r.top;
+  const fac=e.deltaY<0?1.12:1/1.12;
+  const nz=Math.min(4,Math.max(0.1,zoom*fac));
+  panX=mx-(mx-panX)*(nz/zoom);panY=my-(my-panY)*(nz/zoom);zoom=nz;applyTx();
+},{passive:false});
+let spaceDown=false,altDown=false;
+let selectedNodes=new Set();
+let selectedClusters=new Set();
+
+function isSelected(g){return selectedNodes.has(g)||selectedClusters.has(g);}
+
+function isInsideSelectedCluster(nodeG){
+  // Check if nodeG's id is a member of any selected cluster
+  const nid=nodeIdFrom(nodeG);
+  for(const cl of selectedClusters){
+    const _pfx=currentRenderId+'-';
+    const clId=cl.id.startsWith(_pfx)?cl.id.slice(_pfx.length):cl.id;
+    if(getSubgraphMembers(clId,editor.value).has(nid))return true;
+  }
+  return false;
+}
+
+function setSelected(g,on){
+  const isCl=g.classList.contains('cluster');
+  if(on){
+    if(isCl)selectedClusters.add(g);else selectedNodes.add(g);
+    g.classList.add('sel-glow');
+  }else{
+    if(isCl)selectedClusters.delete(g);else selectedNodes.delete(g);
+    g.classList.remove('sel-glow');
+  }
+}
+
+function clearSelection(){
+  [...selectedNodes,...selectedClusters].forEach(g=>g.classList.remove('sel-glow'));
+  selectedNodes.clear();selectedClusters.clear();
+}
+
+// ── Undo/Redo ─────────────────────────────────────────────────────────
+const MAX_HISTORY=100;
+let undoStack=[],redoStack=[];
+function updateUndoButtons(){
+  const u=document.getElementById('undoBtn'),r=document.getElementById('redoBtn');
+  if(u)u.disabled=undoStack.length===0;if(r)r.disabled=redoStack.length===0;
+}
+function pushHistory(cmd){
+  undoStack.push(cmd);if(undoStack.length>MAX_HISTORY)undoStack.shift();
+  redoStack=[];updateUndoButtons();
+}
+function findConn(key){
+  const [src,tgt]=key.split('>');
+  return edgeConnections.find(c=>nodeIdFrom(c.srcG)===src&&nodeIdFrom(c.tgtG)===tgt);
+}
+function restoreEdges(edges){
+  if(!edges)return;
+  edges.forEach(({key,geom})=>{
+    const conn=findConn(key);if(!conn||!conn.pathEl)return;
+    conn.p1={...geom.p1};conn.c1={...geom.c1};conn.c2={...geom.c2};conn.p2={...geom.p2};
+    setPathD(conn.pathEl,conn.p1,conn.p2,conn.c1,conn.c2,conn.rectilinear);
+  });
+}
+function snapshotEdges(nodeIds){
+  const idSet=new Set(nodeIds);
+  return edgeConnections.filter(c=>idSet.has(nodeIdFrom(c.srcG))||idSet.has(nodeIdFrom(c.tgtG)))
+    .map(c=>({key:nodeIdFrom(c.srcG)+'>'+nodeIdFrom(c.tgtG),
+      geom:{p1:{...c.p1},c1:{...c.c1},c2:{...c.c2},p2:{...c.p2}}}));
+}
+function applyCmd(cmd,reverse){
+  if(cmd.type==='node-move'){
+    const pos=reverse?cmd.before:cmd.after;
+    const g=currentSVG&&[...currentSVG.querySelectorAll('g.node')].find(n=>nodeIdFrom(n)===cmd.nodeId);
+    if(g){setTx(g,pos.x,pos.y);userPositions.set(cmd.nodeId,pos);}
+    restoreEdges(reverse?cmd.edgesBefore:cmd.edgesAfter);
+  }else if(cmd.type==='cluster-move'){
+    const cp=reverse?cmd.clusterBefore:cmd.clusterAfter;
+    const cl=currentSVG&&currentSVG.querySelector('[id="'+cmd.clusterId+'"]');
+    if(cl){setTx(cl,cp.x,cp.y);userPositions.set('cluster:'+cmd.clusterId,cp);}
+    (reverse?cmd.nodesBefore:cmd.nodesAfter||[]).forEach(({nodeId,pos})=>{
+      const g=currentSVG&&[...currentSVG.querySelectorAll('g.node')].find(n=>nodeIdFrom(n)===nodeId);
+      if(g){setTx(g,pos.x,pos.y);userPositions.set(nodeId,pos);}
+    });
+    restoreEdges(reverse?cmd.edgesBefore:cmd.edgesAfter);
+  }else if(cmd.type==='endpoint-move'){
+    const conn=findConn(cmd.edgeKey);if(!conn)return;
+    const s=reverse?cmd.before:cmd.after;
+    if(cmd.end==='src'){conn.p1={...s.p};conn.c1={...s.c};}
+    else{conn.p2={...s.p};conn.c2={...s.c};}
+    setPathD(conn.pathEl,conn.p1,conn.p2,conn.c1,conn.c2,conn.rectilinear);
+  }else if(cmd.type==='ctrl-move'){
+    const conn=findConn(cmd.edgeKey);if(!conn)return;
+    const pt=reverse?cmd.before:cmd.after;
+    if(cmd.ctrl==='c1')conn.c1={...pt};else conn.c2={...pt};
+    setPathD(conn.pathEl,conn.p1,conn.p2,conn.c1,conn.c2,conn.rectilinear);
+  }else if(cmd.type==='label-move'){
+    const conn=findConn(cmd.edgeKey);if(!conn||!conn.labelG)return;
+    const pos=reverse?cmd.before:cmd.after;setTx(conn.labelG,pos.x,pos.y);
+  }
+  buildHandles(currentSVG);
+}
+document.addEventListener('keydown',e=>{
+  if(e.code==='Space'){
+    // Don't intercept space when typing in the editor
+    if(document.activeElement===document.getElementById('editor'))return;
+    e.preventDefault();
+    if(document.activeElement&&document.activeElement.tagName==='BUTTON')document.activeElement.blur();
+    spaceDown=true;cwrap.classList.add('panning');
+  }
+  if(e.key==='Alt')altDown=true;
+});
+document.addEventListener('keyup',  e=>{
+  if(e.code==='Space'){spaceDown=false;cwrap.classList.remove('panning');cwrap.classList.remove('panning-active');}
+  if(e.key==='Alt')altDown=false;
+});
+cwrap.addEventListener('mousedown',e=>{
+  if(!e.metaKey&&!e.ctrlKey&&(e.target===cwrap||e.target.id==='cinner'||e.target.tagName==='svg'))
+    clearSelection();
+  if(e.button===1||(e.button===0&&spaceDown)){
+    cwrap.classList.add('panning');isPanning=true;panStart={x:e.clientX-panX,y:e.clientY-panY};
+    cwrap.style.cursor='grabbing';e.preventDefault();
+  }
+});
+window.addEventListener('mousemove',e=>{if(!isPanning)return;panX=e.clientX-panStart.x;panY=e.clientY-panStart.y;applyTx();});
+// Snap a point to the nearest point on the actual node border,
+// offset slightly outward so arrowheads clear the border.
+function snapAllEndpoints(){
+  if(!currentSVG)return;
+  const _isClass=/^\s*classDiagram/i.test(editor.value);
+  edgeConnections.forEach(conn=>{
+    if(!conn.pathEl||!conn.srcG||!conn.tgtG)return;
+    // Snap source endpoint
+    const _hasSrcArrow=(()=>{
+      const attr=conn.pathEl.getAttribute('marker-start');
+      return attr&&attr!=='none'&&attr!=='';
+    })();
+    const _srcMarker=conn.pathEl.getAttribute('marker-start')||'';
+    const _srcZero=false;
+    const _isState=/stateDiagram/i.test(editor.value);
+    const _srcDepend=_isClass&&/dependency/i.test(_srcMarker);
+    const _srcOpts=_isState&&_hasSrcArrow?{offset:2}:_srcDepend?{offset:7}:{};
+    const snappedSrc=snapToBorder(conn.srcG,conn.p1,_hasSrcArrow,_isClass,_srcZero,_srcOpts);
+    const dxSrc=snappedSrc.x-conn.p1.x,dySrc=snappedSrc.y-conn.p1.y;
+    conn.p1=snappedSrc;conn.c1={x:conn.c1.x+dxSrc,y:conn.c1.y+dySrc};
+    // Snap target endpoint
+    const _hasTgtArrow=(()=>{
+      const attr=conn.pathEl.getAttribute('marker-end');
+      return attr&&attr!=='none'&&attr!=='';
+    })();
+    const _tgtMarker=conn.pathEl.getAttribute('marker-end')||'';
+    const _tgtZero=false;
+    const _tgtDepend=_isClass&&/dependency/i.test(_tgtMarker);
+    const _tgtOpts=_isState&&_hasTgtArrow?{offset:2}:_tgtDepend?{offset:7}:{};
+    const snappedTgt=snapToBorder(conn.tgtG,conn.p2,_hasTgtArrow,_isClass,_tgtZero,_tgtOpts);
+    const dxTgt=snappedTgt.x-conn.p2.x,dyTgt=snappedTgt.y-conn.p2.y;
+    conn.p2=snappedTgt;conn.c2={x:conn.c2.x+dxTgt,y:conn.c2.y+dyTgt};
+    setPathD(conn.pathEl,conn.p1,conn.p2,conn.c1,conn.c2,conn.rectilinear);
+  });
+  buildHandles(currentSVG);
+}
+
+function snapToBorder(nodeG, pt, hasArrow=true, bigArrow=false, zeroOffset=false, opts={}){
+  // opts.offset: explicit override (takes priority over all flags)
+  let OFFSET;
+  if(!hasArrow)            OFFSET=0;
+  else if(zeroOffset)      OFFSET=0;
+  else if(bigArrow)        OFFSET=18;
+  else                     OFFSET=5;
+  if(opts.offset!==undefined) OFFSET=opts.offset;
+  const b=absBox(nodeG);
+  const cx=b.cx, cy=b.cy;
+
+  // Check if node is diamond-shaped (contains a polygon or rotated rect)
+  const poly=nodeG.querySelector('polygon')||nodeG.querySelector('path.label-container');
+  const isDiamond=nodeG.querySelector('polygon')!==null||
+    (nodeG.getAttribute('class')||'').includes('diamond');
+
+  if(isDiamond){
+    // Diamond corners: top, right, bottom, left
+    const hw=b.w/2, hh=b.h/2;
+    const diamond=[
+      {x:cx,    y:b.y   },  // top
+      {x:b.x+b.w, y:cy  },  // right
+      {x:cx,    y:b.y+b.h}, // bottom
+      {x:b.x,   y:cy    },  // left
+    ];
+    // Find intersection of ray from center toward pt with diamond edges
+    const edges=[
+      [diamond[0],diamond[1]],[diamond[1],diamond[2]],
+      [diamond[2],diamond[3]],[diamond[3],diamond[0]]
+    ];
+    let best=null, bestD=Infinity;
+    edges.forEach(([a,e])=>{
+      const hit=raySegIntersect(cx,cy,pt.x,pt.y,a.x,a.y,e.x,e.y);
+      if(hit){
+        const d=Math.hypot(hit.x-pt.x,hit.y-pt.y);
+        if(d<bestD){bestD=d;best=hit;}
+      }
+    });
+    if(best){
+      // Offset outward from center
+      const len=Math.hypot(best.x-cx,best.y-cy)||1;
+      return{x:best.x+(best.x-cx)/len*OFFSET,
+             y:best.y+(best.y-cy)/len*OFFSET};
+    }
+  }
+
+  // Default: snap to nearest rectangle side
+  const dists=[
+    {side:'top',    d:Math.abs(pt.y-b.y)},
+    {side:'bottom', d:Math.abs(pt.y-(b.y+b.h))},
+    {side:'left',   d:Math.abs(pt.x-b.x)},
+    {side:'right',  d:Math.abs(pt.x-(b.x+b.w))},
+  ];
+  const nearest=dists.reduce((a,b)=>a.d<b.d?a:b);
+  switch(nearest.side){
+    case 'top':
+      return{x:Math.max(b.x,Math.min(b.x+b.w,pt.x)), y:b.y-OFFSET};
+    case 'bottom':
+      return{x:Math.max(b.x,Math.min(b.x+b.w,pt.x)), y:b.y+b.h+OFFSET};
+    case 'left':
+      return{x:b.x-OFFSET, y:Math.max(b.y,Math.min(b.y+b.h,pt.y))};
+    case 'right':
+      return{x:b.x+b.w+OFFSET, y:Math.max(b.y,Math.min(b.y+b.h,pt.y))};
+  }
+}
+
+// Ray from (rx,ry) through (tx,ty), intersect with segment (ax,ay)-(bx,by)
+function raySegIntersect(rx,ry,tx,ty,ax,ay,bx,by){
+  const dx=tx-rx, dy=ty-ry;
+  const ex=bx-ax, ey=by-ay;
+  const denom=dx*ey-dy*ex;
+  if(Math.abs(denom)<1e-10)return null;
+  const t=((ax-rx)*ey-(ay-ry)*ex)/denom;
+  const u=((ax-rx)*dy-(ay-ry)*dx)/denom;
+  if(t>=0&&u>=0&&u<=1)return{x:rx+t*dx,y:ry+t*dy};
+  return null;
+}
+
+window.addEventListener('mouseup',()=>{if(isPanning){isPanning=false;cwrap.classList.remove('panning');cwrap.classList.remove('panning-active');cwrap.style.cursor='';}});
+document.getElementById('zInBtn').onclick  =()=>{zoom=Math.min(4,zoom*1.2);applyTx();};
+document.getElementById('cpSizeSlider').addEventListener('input',e=>{
+  HR=HR_BASE*parseFloat(e.target.value);
+  if(currentSVG){
+    const _tot=zoom*svgPxPerUnit;
+    const _r=HR/_tot;const _sw=1.5/_tot;const _lsw=2/_tot;const _da=(6/_tot)+','+(6/_tot);
+    currentSVG.querySelectorAll('#handle-layer circle').forEach(h=>{h.setAttribute('r',_r);h.setAttribute('stroke-width',_sw);});
+    currentSVG.querySelectorAll('#handle-layer line').forEach(l=>{l.setAttribute('stroke-width',_lsw);l.setAttribute('stroke-dasharray',_da);});
+  }
+});
+
+document.getElementById('zOutBtn').onclick  =()=>{zoom=Math.max(0.1,zoom/1.2);applyTx();};
+document.getElementById('fitBtn').onclick   =()=>fitView();
+
+function fitView(){
+  if(!currentSVG)return;
+  // getBoundingClientRect gives actual rendered size in viewport
+  const wr=cwrap.getBoundingClientRect();
+  const wrW=wr.width;
+  // Clamp height to window height in case of document-scroll issues
+  const wrH=Math.min(wr.height, window.innerHeight);
+  let b;try{b=currentSVG.getBBox();}catch(e){return;}
+  if(!b.width||!b.height)return;
+  // viewBox tells us SVG user units; getBBox is in the same units
+  const vb=currentSVG.viewBox.baseVal;
+  // SVG renders its viewBox into its CSS pixel size
+  // screenRect at current zoom -> divide by zoom to get size at zoom=1
+  const svgR=currentSVG.getBoundingClientRect();
+  const svgCSSw=svgR.width/zoom;
+  const svgCSSh=svgR.height/zoom;
+  // px per SVG unit at zoom=1
+  const scaleX=vb.width>0?svgCSSw/vb.width:1;
+  const scaleY=vb.height>0?svgCSSh/vb.height:1;
+  // Convert bbox from SVG units to CSS px at zoom=1
+  const bxPx=(b.x-vb.x)*scaleX;
+  const byPx=(b.y-vb.y)*scaleY;
+  const bwPx=b.width*scaleX;
+  const bhPx=b.height*scaleY;
+  const pad=40;
+  const newZoom=Math.min((wrW-pad*2)/bwPx,(wrH-pad*2)/bhPx,3);
+  panX=wrW/2-(bxPx+bwPx/2)*newZoom;
+  panY=wrH/2-(byPx+bhPx/2)*newZoom;
+  zoom=newZoom;
+  applyTx();
+
+};
+document.getElementById('resetBtn').onclick=()=>render();
+
+// ── Light/dark toggle ─────────────────────────────────────────────────
+const themeBtn=document.getElementById('themeBtn');
+themeBtn.addEventListener('click',()=>{
+  const isLight=document.body.classList.toggle('light');
+  themeBtn.textContent=isLight?'🌙':'☀️';
+  // Re-initialize Mermaid with appropriate theme and re-render
+  // Theme is always 'base' — colors controlled by our CSS
+  // Snapshot edge geometry and a reference node position before re-render
+  const edgeSnap=edgeConnections.map(conn=>({
+    src:conn.srcG?nodeIdFrom(conn.srcG):null,
+    tgt:conn.tgtG?nodeIdFrom(conn.tgtG):null,
+    p1:{...conn.p1},c1:{...conn.c1},c2:{...conn.c2},p2:{...conn.p2},
+    labelTx:conn.labelG?parseTx(conn.labelG.getAttribute('transform')):null,
+  }));
+  // Use first node as reference to measure layout delta after re-render
+  const refNodeBefore=currentSVG?currentSVG.querySelector('g.node'):null;
+  const refIdBefore=refNodeBefore?nodeIdFrom(refNodeBefore):null;
+  const refTxBefore=refNodeBefore?parseTx(refNodeBefore.getAttribute('transform')):null;
+  renderWithPositions(null).then(()=>{
+    // Compute layout delta from reference node
+    let dx=0,dy=0;
+    if(refIdBefore&&currentSVG){
+      const refAfter=currentSVG.querySelector('g.node');
+      if(refAfter){
+        const refTxAfter=parseTx(refAfter.getAttribute('transform'));
+        dx=refTxAfter.x-refTxBefore.x;
+        dy=refTxAfter.y-refTxBefore.y;
+      }
+    }
+    if(edgeSnap.length&&edgeConnections.length){
+      edgeSnap.forEach(saved=>{
+        const conn=edgeConnections.find(c=>
+          nodeIdFrom(c.srcG)===saved.src&&nodeIdFrom(c.tgtG)===saved.tgt);
+        if(!conn||!conn.pathEl)return;
+        // Shift all edge coords by the layout delta
+        conn.p1={x:saved.p1.x+dx,y:saved.p1.y+dy};
+        conn.c1={x:saved.c1.x+dx,y:saved.c1.y+dy};
+        conn.c2={x:saved.c2.x+dx,y:saved.c2.y+dy};
+        conn.p2={x:saved.p2.x+dx,y:saved.p2.y+dy};
+        setPathD(conn.pathEl,conn.p1,conn.p2,conn.c1,conn.c2,conn.rectilinear);
+        if(saved.labelTx&&conn.labelG)setTx(conn.labelG,saved.labelTx.x+dx,saved.labelTx.y+dy);
+      });
+      requestAnimationFrame(()=>requestAnimationFrame(()=>{buildHandles(currentSVG);fitView();})); // skip snap — positions restored from file
+    }
+  });
+});
+
+
+// ── Drag-and-drop file open ───────────────────────────────────────────
+function setupDropZone(el){
+  el.addEventListener('dragover',e=>{
+    if([...e.dataTransfer.types].includes('Files')){
+      e.preventDefault();e.dataTransfer.dropEffect='copy';
+      el.classList.add('drop-active');
+    }
+  });
+  el.addEventListener('dragleave',e=>el.classList.remove('drop-active'));
+  el.addEventListener('drop',async e=>{
+    e.preventDefault();
+    el.classList.remove('drop-active');
+    const file=e.dataTransfer.files[0];
+    if(!file)return;
+    const ext=file.name.split('.').pop().toLowerCase();
+    if(!['merman','mmn','mmd','mermaid'].includes(ext)){
+      alert('Please drop a .mermaid, .mmd, .merman, or .mmn file.');return;
+    }
+    await processFile(file);
+  });
+}
+setupDropZone(document.getElementById('cwrap'));
+setupDropZone(document.getElementById('editor'));
+
+// ── Help panel
+document.getElementById('helpBtn').addEventListener('click',()=>{
+  const hp=document.getElementById('hpane');
+  const hr=document.getElementById('hresizer');
+  const btn=document.getElementById('helpBtn');
+  const visible=hp.style.display!=='none';
+  hp.style.display=visible?'none':'flex';
+  hr.style.display=visible?'none':'block';
+  btn.classList.toggle('active',!visible);
+});
+(()=>{
+  const hr=document.getElementById('hresizer');
+  const hp=document.getElementById('hpane');
+  let drag=false,sx=0,sw=0;
+  hr.addEventListener('mousedown',e=>{drag=true;sx=e.clientX;sw=hp.offsetWidth;hr.classList.add('dragging');document.body.style.userSelect='none';e.preventDefault();});
+  window.addEventListener('mousemove',e=>{if(!drag)return;hp.style.width=Math.max(160,Math.min(500,sw-(e.clientX-sx)))+'px';});
+  window.addEventListener('mouseup',()=>{if(drag){drag=false;hr.classList.remove('dragging');document.body.style.userSelect='';}});
+})();
+
+// ── Canvas resize observer — keep handle sizes constant
+new ResizeObserver(()=>{
+  if(!currentSVG)return;
+  const _vb=currentSVG.viewBox&&currentSVG.viewBox.baseVal;
+  const _sw=currentSVG.getBoundingClientRect().width;
+  if(_vb&&_vb.width>0&&_sw>0) svgPxPerUnit=(_sw/zoom)/_vb.width;
+  applyTx();
+}).observe(document.getElementById('cwrap'));
+
+// ── Resizer ───────────────────────────────────────────────────────────
+const resizer=document.getElementById('resizer');
+const epane  =document.getElementById('epane');
+let resizing=false,rsX=0,rsW=0;
+resizer.addEventListener('mousedown',e=>{resizing=true;rsX=e.clientX;rsW=epane.offsetWidth;resizer.classList.add('dragging');document.body.style.userSelect='none';});
+window.addEventListener('mousemove',e=>{if(!resizing)return;epane.style.width=Math.max(180,Math.min(window.innerWidth*0.6,rsW+e.clientX-rsX))+'px';});
+// Snap a point to the nearest point on the actual node border,
+// offset slightly outward so arrowheads clear the border.
+function snapAllEndpoints(){
+  if(!currentSVG)return;
+  const _isClass=/^\s*classDiagram/i.test(editor.value);
+  edgeConnections.forEach(conn=>{
+    if(!conn.pathEl||!conn.srcG||!conn.tgtG)return;
+    // Snap source endpoint
+    const _hasSrcArrow=(()=>{
+      const attr=conn.pathEl.getAttribute('marker-start');
+      return attr&&attr!=='none'&&attr!=='';
+    })();
+    const _srcMarker=conn.pathEl.getAttribute('marker-start')||'';
+    const _srcZero=false;
+    const _isState=/stateDiagram/i.test(editor.value);
+    const _srcDepend=_isClass&&/dependency/i.test(_srcMarker);
+    const _srcOpts=_isState&&_hasSrcArrow?{offset:2}:_srcDepend?{offset:7}:{};
+    const snappedSrc=snapToBorder(conn.srcG,conn.p1,_hasSrcArrow,_isClass,_srcZero,_srcOpts);
+    const dxSrc=snappedSrc.x-conn.p1.x,dySrc=snappedSrc.y-conn.p1.y;
+    conn.p1=snappedSrc;conn.c1={x:conn.c1.x+dxSrc,y:conn.c1.y+dySrc};
+    // Snap target endpoint
+    const _hasTgtArrow=(()=>{
+      const attr=conn.pathEl.getAttribute('marker-end');
+      return attr&&attr!=='none'&&attr!=='';
+    })();
+    const _tgtMarker=conn.pathEl.getAttribute('marker-end')||'';
+    const _tgtZero=false;
+    const _tgtDepend=_isClass&&/dependency/i.test(_tgtMarker);
+    const _tgtOpts=_isState&&_hasTgtArrow?{offset:2}:_tgtDepend?{offset:7}:{};
+    const snappedTgt=snapToBorder(conn.tgtG,conn.p2,_hasTgtArrow,_isClass,_tgtZero,_tgtOpts);
+    const dxTgt=snappedTgt.x-conn.p2.x,dyTgt=snappedTgt.y-conn.p2.y;
+    conn.p2=snappedTgt;conn.c2={x:conn.c2.x+dxTgt,y:conn.c2.y+dyTgt};
+    setPathD(conn.pathEl,conn.p1,conn.p2,conn.c1,conn.c2,conn.rectilinear);
+  });
+  buildHandles(currentSVG);
+}
+
+function snapToBorder(nodeG, pt, hasArrow=true, bigArrow=false, zeroOffset=false, opts={}){
+  // opts.offset: explicit override (takes priority over all flags)
+  let OFFSET;
+  if(!hasArrow)            OFFSET=0;
+  else if(zeroOffset)      OFFSET=0;
+  else if(bigArrow)        OFFSET=18;
+  else                     OFFSET=5;
+  if(opts.offset!==undefined) OFFSET=opts.offset;
+  const b=absBox(nodeG);
+  const cx=b.cx, cy=b.cy;
+
+  // Check if node is diamond-shaped (contains a polygon or rotated rect)
+  const poly=nodeG.querySelector('polygon')||nodeG.querySelector('path.label-container');
+  const isDiamond=nodeG.querySelector('polygon')!==null||
+    (nodeG.getAttribute('class')||'').includes('diamond');
+
+  if(isDiamond){
+    // Diamond corners: top, right, bottom, left
+    const hw=b.w/2, hh=b.h/2;
+    const diamond=[
+      {x:cx,    y:b.y   },  // top
+      {x:b.x+b.w, y:cy  },  // right
+      {x:cx,    y:b.y+b.h}, // bottom
+      {x:b.x,   y:cy    },  // left
+    ];
+    // Find intersection of ray from center toward pt with diamond edges
+    const edges=[
+      [diamond[0],diamond[1]],[diamond[1],diamond[2]],
+      [diamond[2],diamond[3]],[diamond[3],diamond[0]]
+    ];
+    let best=null, bestD=Infinity;
+    edges.forEach(([a,e])=>{
+      const hit=raySegIntersect(cx,cy,pt.x,pt.y,a.x,a.y,e.x,e.y);
+      if(hit){
+        const d=Math.hypot(hit.x-pt.x,hit.y-pt.y);
+        if(d<bestD){bestD=d;best=hit;}
+      }
+    });
+    if(best){
+      // Offset outward from center
+      const len=Math.hypot(best.x-cx,best.y-cy)||1;
+      return{x:best.x+(best.x-cx)/len*OFFSET,
+             y:best.y+(best.y-cy)/len*OFFSET};
+    }
+  }
+
+  // Default: snap to nearest rectangle side
+  const dists=[
+    {side:'top',    d:Math.abs(pt.y-b.y)},
+    {side:'bottom', d:Math.abs(pt.y-(b.y+b.h))},
+    {side:'left',   d:Math.abs(pt.x-b.x)},
+    {side:'right',  d:Math.abs(pt.x-(b.x+b.w))},
+  ];
+  const nearest=dists.reduce((a,b)=>a.d<b.d?a:b);
+  switch(nearest.side){
+    case 'top':
+      return{x:Math.max(b.x,Math.min(b.x+b.w,pt.x)), y:b.y-OFFSET};
+    case 'bottom':
+      return{x:Math.max(b.x,Math.min(b.x+b.w,pt.x)), y:b.y+b.h+OFFSET};
+    case 'left':
+      return{x:b.x-OFFSET, y:Math.max(b.y,Math.min(b.y+b.h,pt.y))};
+    case 'right':
+      return{x:b.x+b.w+OFFSET, y:Math.max(b.y,Math.min(b.y+b.h,pt.y))};
+  }
+}
+
+// Ray from (rx,ry) through (tx,ty), intersect with segment (ax,ay)-(bx,by)
+function raySegIntersect(rx,ry,tx,ty,ax,ay,bx,by){
+  const dx=tx-rx, dy=ty-ry;
+  const ex=bx-ax, ey=by-ay;
+  const denom=dx*ey-dy*ex;
+  if(Math.abs(denom)<1e-10)return null;
+  const t=((ax-rx)*ey-(ay-ry)*ex)/denom;
+  const u=((ax-rx)*dy-(ay-ry)*dx)/denom;
+  if(t>=0&&u>=0&&u<=1)return{x:rx+t*dx,y:ry+t*dy};
+  return null;
+}
+
+window.addEventListener('mouseup',()=>{if(resizing){resizing=false;resizer.classList.remove('dragging');document.body.style.userSelect='';}});
+
+// ── Export PNG ────────────────────────────────────────────────────────
+const _exportBtn=document.getElementById('exportBtn');
+if(!_exportBtn){alert('exportBtn not found!');}
+else _exportBtn.addEventListener('click',async()=>{
+  try{
+    if(!currentSVG){alert('No diagram.');return;}
+
+    // Hide handles, clone, restore
+    const hl=currentSVG.getElementById('handle-layer');
+    if(hl)hl.setAttribute('display','none');
+    const clone=currentSVG.cloneNode(true);
+    if(hl)hl.removeAttribute('display');
+    const cloneHl=clone.getElementById('handle-layer');
+    if(cloneHl)cloneHl.remove();
+
+    // Remove defs styles (external @import rules taint canvas)
+    clone.querySelectorAll('defs style').forEach(s=>s.remove());
+
+    const _isSeq=/^\s*sequenceDiagram/i.test(editor.value);
+    if(_isSeq){
+      // Sequence diagram: backup12 approach — keep foreignObject, only set fill attr on text
+    // Set explicit colors on edges/nodes/clusters
+    clone.querySelectorAll('path.flowchart-link,path.relation').forEach(el=>{
+      el.setAttribute('stroke','#000000');el.setAttribute('fill','none');
+    });
+    clone.querySelectorAll('defs marker path,defs marker polygon,path.arrowMarkerPath').forEach(el=>{
+      const _mc=el.closest('marker');
+      const _mcls=_mc?(_mc.getAttribute('class')||''):'';
+      if(_mcls.includes('classDiagram')||_mcls.includes('er'))return;
+      el.setAttribute('fill','#000000');el.setAttribute('stroke','#000000');
+    });
+    // classDiagram markers: stroke only, preserve hollow fills
+    clone.querySelectorAll('defs marker.classDiagram path,defs marker.classDiagram polygon').forEach(el=>{
+      el.setAttribute('stroke','#000000');
+      const _mcls=el.closest('marker').getAttribute('class')||'';
+      if(_mcls.includes('aggregation')||_mcls.includes('extension'))el.setAttribute('fill','transparent');
+      else el.setAttribute('fill','#000000');
+    });
+    clone.querySelectorAll('.node rect,.node circle,.node ellipse,.node polygon,.node path').forEach(el=>{
+      if(el.closest('defs'))return;
+      el.setAttribute('fill','#e8f0ff');el.setAttribute('stroke','#2e8bff');
+    });
+    clone.querySelectorAll('.cluster rect').forEach(el=>{
+      el.setAttribute('fill','#fffde8');el.setAttribute('stroke','#b8920a');
+    });
+    // Only set fill attribute — do NOT set style (would override text-anchor)
+    clone.querySelectorAll('text,tspan').forEach(el=>{
+      el.setAttribute('fill','#111111');
+    });
+
+    // Fix foreignObject content for SVG serialization
+    clone.querySelectorAll('foreignObject').forEach(fo=>{
+      fo.setAttribute('xmlns','http://www.w3.org/1999/xhtml');
+      fo.querySelectorAll('*').forEach(el=>{
+        el.removeAttribute('class');
+        el.setAttribute('style',
+          'font-family:sans-serif;font-size:14px;color:#111111;'+
+          'display:flex;align-items:center;justify-content:center;'+
+          'width:100%;height:100%;text-align:center;');
+      });
+    });
+    } else {
+      // Flowchart etc: backup10 approach — replace foreignObject with SVG text
+    // Resolve all colors to literal hex (no CSS vars in detached SVG)
+    clone.querySelectorAll('path.flowchart-link, path.relation').forEach(el=>{
+      el.setAttribute('stroke','#000000');
+      el.setAttribute('fill','none');
+      el.setAttribute('style','stroke:#000000!important;fill:none!important;');
+    });
+    clone.querySelectorAll('defs marker path, defs marker polygon, path.arrowMarkerPath').forEach(el=>{
+      const _mc2=el.closest('marker');
+      const _mcls2=_mc2?(_mc2.getAttribute('class')||''):'';
+      if(_mcls2.includes('classDiagram')||_mcls2.includes('er'))return;
+      el.setAttribute('fill','#000000');
+      el.setAttribute('stroke','#000000');
+      el.setAttribute('style','fill:#000000!important;stroke:#000000!important;');
+    });
+    clone.querySelectorAll('.node rect,.node circle,.node ellipse,.node polygon,.node path').forEach(el=>{
+      if(el.closest('defs'))return;
+      el.setAttribute('fill','#e8f0ff');
+      el.setAttribute('stroke','#2e8bff');
+      el.setAttribute('style','fill:#e8f0ff!important;stroke:#2e8bff!important;stroke-width:1.5px!important;');
+    });
+    clone.querySelectorAll('.cluster rect').forEach(el=>{
+      el.setAttribute('fill','#fffde8');
+      el.setAttribute('stroke','#b8920a');
+      el.setAttribute('style','fill:#fffde8!important;stroke:#b8920a!important;stroke-width:1.5px!important;');
+    });
+
+    // Extract text from foreignObject before removing it
+    // Use a hidden canvas to measure real text widths for accurate word-wrap
+    const _mctx=(()=>{const cv=document.createElement('canvas');const ctx=cv.getContext('2d');ctx.font='13px sans-serif';return ctx;})();
+    function measureText(s){return _mctx.measureText(s).width;}
+
+    clone.querySelectorAll('foreignObject').forEach(fo=>{
+      const label=fo.textContent.trim();
+      if(label){
+        const fw=parseFloat(fo.getAttribute('width')||'100');
+        const fh=parseFloat(fo.getAttribute('height')||'20');
+        const fx=parseFloat(fo.getAttribute('x')||'0');
+        const fy=parseFloat(fo.getAttribute('y')||'0');
+        const fontSize=13;
+        const maxW=fw-4; // small padding
+        // Word-wrap using real canvas text measurement
+        const words=label.split(' ');
+        const lines=[];
+        let cur='';
+        words.forEach(w=>{
+          const test=(cur?cur+' ':'')+w;
+          if(cur&&measureText(test)>maxW){lines.push(cur);cur=w;}
+          else{cur=test;}
+        });
+        if(cur)lines.push(cur);
+        const lineH=fontSize*1.4;
+        const totalH=lines.length*lineH;
+        const startY=fy+fh/2-totalH/2+lineH*0.75;
+        const t=document.createElementNS('http://www.w3.org/2000/svg','text');
+        t.setAttribute('x',fx+fw/2);t.setAttribute('y',startY);
+        t.setAttribute('text-anchor','middle');
+        t.setAttribute('fill','#111111');
+        t.setAttribute('style','fill:#111111!important;font-size:'+fontSize+'px;font-family:sans-serif;');
+        lines.forEach((line,i)=>{
+          const ts=document.createElementNS('http://www.w3.org/2000/svg','tspan');
+          ts.setAttribute('x',fx+fw/2);
+          ts.setAttribute('dy',i===0?'0':'1.4em');
+          ts.textContent=line;
+          t.appendChild(ts);
+        });
+        fo.parentNode.insertBefore(t,fo);
+      }
+      fo.remove();
+    });
+
+    // Shape colors set above
+
+    // Force text to black — override via style to beat Mermaid's CSS cascade
+    clone.querySelectorAll('text,tspan').forEach(el=>{
+      el.setAttribute('fill','#111111');
+      el.setAttribute('style','fill:#111111!important;');
+    });
+    }
+
+    // Set dimensions from live SVG bbox
+    const b=currentSVG.getBBox();
+    const pad=32;
+    const W=Math.ceil(b.width+pad*2);
+    const H=Math.ceil(b.height+pad*2);
+    clone.setAttribute('xmlns','http://www.w3.org/2000/svg');
+    clone.setAttribute('xmlns:xlink','http://www.w3.org/1999/xlink');
+    clone.setAttribute('width',W);clone.setAttribute('height',H);
+    clone.setAttribute('viewBox',(b.x-pad)+' '+(b.y-pad)+' '+W+' '+H);
+
+    // White background
+    const bg=document.createElementNS('http://www.w3.org/2000/svg','rect');
+    bg.setAttribute('x',b.x-pad);bg.setAttribute('y',b.y-pad);
+    bg.setAttribute('width',W);bg.setAttribute('height',H);
+    bg.setAttribute('fill','#ffffff');
+    clone.insertBefore(bg,clone.firstChild);
+
+    // Inline style block for font info (canvas ignores external CSS)
+    const styleEl=document.createElementNS('http://www.w3.org/2000/svg','style');
+    styleEl.textContent='text,tspan{font-family:sans-serif;font-size:14px;fill:#111111;}';
+    clone.insertBefore(styleEl,clone.firstChild);
+
+    const svgStr=new XMLSerializer().serializeToString(clone);
+    const blob=new Blob([svgStr],{type:'image/svg+xml;charset=utf-8'});
+    const url=URL.createObjectURL(blob);
+
+    const img=new Image();
+    img.onload=()=>{
+      try{
+        const sc=2,cv=document.createElement('canvas');
+        cv.width=W*sc;cv.height=H*sc;
+        const ctx=cv.getContext('2d');
+        ctx.scale(sc,sc);
+        ctx.fillStyle='#ffffff';ctx.fillRect(0,0,W,H);
+        ctx.drawImage(img,0,0,W,H);
+        URL.revokeObjectURL(url);
+        cv.toBlob(png=>{
+          const a=document.createElement('a');
+          a.href=URL.createObjectURL(png);
+          const fname=(document.getElementById('filename').value.trim()||'diagram')
+            .replace(/\.png$/i,'').replace(/\.merman$|\.mmn$/i,'');
+          a.download=fname+'.png';
+          document.body.appendChild(a);a.click();
+          setTimeout(()=>document.body.removeChild(a),100);
+        });
+      }catch(e){alert('Canvas error: '+e.message);}
+    };
+    img.onerror=(e)=>{URL.revokeObjectURL(url);alert('SVG load failed.');};
+    img.src=url;
+  }catch(e){alert('Export error: '+e.message);}
+});
+
+// ── Tab key ───────────────────────────────────────────────────────────
+editor.addEventListener('keydown',e=>{
+  if(e.key!=='Tab')return;e.preventDefault();
+  const s=editor.selectionStart;
+  editor.value=editor.value.substring(0,s)+'  '+editor.value.substring(editor.selectionEnd);
+  editor.selectionStart=editor.selectionEnd=s+2;
+});
+
+render().then(()=>{snapAllEndpoints();setTimeout(()=>fitView(),10);});
+
+let previewMode=false;
+const PREVIEW_RADIUS=20;
+
+document.getElementById('previewBtn').addEventListener('click',()=>{
+  previewMode=!previewMode;
+  const _pb=document.getElementById('previewBtn');
+  _pb.classList.toggle('active',previewMode);
+  _pb.textContent=previewMode?'Show controls':'Hide controls';
+  if(!previewMode){
+    const layer=currentSVG&&currentSVG.querySelector('#handle-layer');
+    if(layer)[...layer.querySelectorAll('circle,line,polygon')].forEach(el=>{el.style.display='';});
+  } else {
+    applyPreviewVisibility({x:-9999,y:-9999});
+  }
+});
+
+function applyPreviewVisibility(svgPt){
+  if(!previewMode||!currentSVG)return;
+  const layer=currentSVG.querySelector('#handle-layer');
+  if(!layer)return;
+  edgeConnections.forEach(conn=>{
+    const p1Near=conn.p1&&Math.hypot(conn.p1.x-svgPt.x,conn.p1.y-svgPt.y)<=PREVIEW_RADIUS;
+    const p2Near=conn.p2&&Math.hypot(conn.p2.x-svgPt.x,conn.p2.y-svgPt.y)<=PREVIEW_RADIUS;
+    const c1Near=conn.c1&&Math.hypot(conn.c1.x-svgPt.x,conn.c1.y-svgPt.y)<=PREVIEW_RADIUS;
+    const c2Near=conn.c2&&Math.hypot(conn.c2.x-svgPt.x,conn.c2.y-svgPt.y)<=PREVIEW_RADIUS;
+    const hlx=conn.hl?parseFloat(conn.hl.getAttribute('cx')||0):null;
+    const hly=conn.hl?parseFloat(conn.hl.getAttribute('cy')||0):null;
+    const hlNear=conn.hl&&Math.hypot(hlx-svgPt.x,hly-svgPt.y)<=PREVIEW_RADIUS;
+    const showH1=p1Near,showH2=p2Near;
+    const showHc1=p1Near||c1Near,showHc2=p2Near||c2Near;
+    function vis(el,show){if(el)el.style.display=show?'':'none';}
+    vis(conn.h1,showH1);vis(conn.h2,showH2);
+    vis(conn.hc1,showHc1);vis(conn.stem1,showHc1);
+    vis(conn.hc2,showHc2);vis(conn.stem2,showHc2);
+    vis(conn.hl,hlNear);
+  });
+}
+
+document.getElementById('exportSvgBtn').addEventListener('click',()=>{
+  try{
+    if(!currentSVG){alert('No diagram.');return;}
+    const hl=currentSVG.getElementById('handle-layer');
+    if(hl)hl.setAttribute('display','none');
+    const clone=currentSVG.cloneNode(true);
+    if(hl)hl.removeAttribute('display');
+    const cloneHl=clone.getElementById('handle-layer');
+    if(cloneHl)cloneHl.remove();
+
+    // Resolve all colors to literal values (no CSS vars or !important)
+    clone.querySelectorAll('defs style').forEach(s=>s.remove());
+    clone.querySelectorAll('path.flowchart-link,path.relation').forEach(el=>{
+      el.setAttribute('stroke','#000000');el.setAttribute('fill','none');
+      el.style.cssText='';
+    });
+    clone.querySelectorAll('defs marker path,defs marker polygon,path.arrowMarkerPath').forEach(el=>{
+      el.setAttribute('fill','#000000');el.setAttribute('stroke','#000000');
+      el.style.cssText='';
+    });
+    clone.querySelectorAll('.node rect,.node circle,.node ellipse,.node polygon,.node path').forEach(el=>{
+      if(el.closest('defs'))return;
+      el.setAttribute('fill','#e8f0ff');el.setAttribute('stroke','#2e8bff');
+      el.style.cssText='';
+    });
+    clone.querySelectorAll('.cluster rect').forEach(el=>{
+      el.setAttribute('fill','#fffde8');el.setAttribute('stroke','#b8920a');
+      el.style.cssText='';
+    });
+    clone.querySelectorAll('text,tspan').forEach(el=>{
+      el.setAttribute('fill','#111111');
+      el.style.cssText='';
+    });
+    // Also fix any remaining elements with inline CSS vars
+    clone.querySelectorAll('[style]').forEach(el=>{
+      const s=el.getAttribute('style')||'';
+      if(s.includes('var(--'))el.setAttribute('style',s.replace(/var\([^)]+\)/g,''));
+    });
+
+    // Replace foreignObject with native <text> elements for compatibility
+    const _mctx=(()=>{const cv=document.createElement('canvas');const ctx=cv.getContext('2d');ctx.font='14px sans-serif';return ctx;})();
+    clone.querySelectorAll('foreignObject').forEach(fo=>{
+      const label=fo.textContent.trim();
+      if(label){
+        const fw=parseFloat(fo.getAttribute('width')||'0');
+        const fh=parseFloat(fo.getAttribute('height')||'0');
+        const fx=parseFloat(fo.getAttribute('x')||'0');
+        const fy=parseFloat(fo.getAttribute('y')||'0');
+        const fontSize=14;
+        const maxW=(fw||100)-4;
+        const words=label.split(/\s+/);
+        const lines=[];let cur='';
+        words.forEach(w=>{
+          const test=(cur?cur+' ':'')+w;
+          if(cur&&_mctx.measureText(test).width>maxW){lines.push(cur);cur=w;}
+          else cur=test;
+        });
+        if(cur)lines.push(cur);
+        const lineH=fontSize*1.4;
+        const totalH=lines.length*lineH;
+        // Center vertically in fh (or parent if fh=0)
+        const baseH=fh||20;
+        const startY=fy+baseH/2-totalH/2+fontSize*0.8;
+        const cx=fx+fw/2;
+        const t=document.createElementNS('http://www.w3.org/2000/svg','text');
+        t.setAttribute('x',cx);
+        t.setAttribute('y',startY);
+        t.setAttribute('text-anchor','middle');
+        t.setAttribute('fill','#111111');
+        t.setAttribute('font-size',fontSize);
+        t.setAttribute('font-family','sans-serif');
+        lines.forEach((line,i)=>{
+          const ts=document.createElementNS('http://www.w3.org/2000/svg','tspan');
+          ts.setAttribute('x',cx);
+          ts.setAttribute('dy',i===0?'0':lineH+'');
+          ts.textContent=line;
+          t.appendChild(ts);
+        });
+        fo.parentNode.insertBefore(t,fo);
+      }
+      fo.remove();
+    });
+
+    // Inline a simple style block for fonts
+    const styleEl=document.createElementNS('http://www.w3.org/2000/svg','style');
+    styleEl.textContent='text,tspan{font-family:sans-serif;font-size:14px;fill:#111111;}';
+    clone.insertBefore(styleEl,clone.firstChild);
+
+    // White background
+    const b=currentSVG.getBBox();
+    const pad=16;
+    const bg=document.createElementNS('http://www.w3.org/2000/svg','rect');
+    bg.setAttribute('x',b.x-pad);bg.setAttribute('y',b.y-pad);
+    bg.setAttribute('width',b.width+pad*2);bg.setAttribute('height',b.height+pad*2);
+    bg.setAttribute('fill','#ffffff');
+    clone.insertBefore(bg,clone.firstChild);
+
+    clone.setAttribute('xmlns','http://www.w3.org/2000/svg');
+    clone.setAttribute('xmlns:xlink','http://www.w3.org/1999/xlink');
+
+    const svgStr=new XMLSerializer().serializeToString(clone);
+    const blob=new Blob([svgStr],{type:'image/svg+xml;charset=utf-8'});
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);
+    const fname=(document.getElementById('filename').value.trim()||'diagram')
+      .replace(/\.svg$/i,'').replace(/\.merman$|\.mmn$/i,'');
+    a.download=fname+'.svg';
+    document.body.appendChild(a);a.click();
+    setTimeout(()=>{document.body.removeChild(a);URL.revokeObjectURL(a.href);},100);
+  }catch(e){alert('SVG export error: '+e.message);}
+});
+
+document.getElementById('undoBtn').addEventListener('click',()=>{
+  if(!undoStack.length)return;
+  const cmd=undoStack.pop();redoStack.push(cmd);applyCmd(cmd,true);updateUndoButtons();
+});
+document.getElementById('redoBtn').addEventListener('click',()=>{
+  if(!redoStack.length)return;
+  const cmd=redoStack.pop();undoStack.push(cmd);applyCmd(cmd,false);updateUndoButtons();
+});
+
+// ── Merman Save/Open ───────────────────────────────────────────────
+const DELIM = '%%MERMAN%%';
+
+function r4(n){return Math.round(n*10000)/10000;}
+
+function stateToYaml(state){
+  const lines=['version: 1'];
+  lines.push('nodes:');
+  Object.entries(state.nodes).forEach(([k,v])=>{
+    lines.push('  '+k+': {x: '+r4(v.x)+', y: '+r4(v.y)+'}');
+  });
+  lines.push('edges:');
+  state.edges.forEach(e=>{
+    if(!e.src||!e.tgt)return;
+    lines.push('  - src: '+e.src);
+    lines.push('    tgt: '+e.tgt);
+    ['p1','c1','c2','p2'].forEach(k=>{
+      if(e[k])lines.push('    '+k+': {x: '+r4(e[k].x)+', y: '+r4(e[k].y)+'}');
+    });
+  });
+  lines.push('labels:');
+  state.labels.forEach(l=>{
+    lines.push('  - src: '+l.src);
+    lines.push('    tgt: '+l.tgt);
+    lines.push('    tx: {x: '+r4(l.tx.x)+', y: '+r4(l.tx.y)+'}');
+  });
+  return lines.join('\n');
+}
+
+function yamlToState(yaml){
+  const state={version:1,nodes:{},edges:[],labels:[]};
+  const lines=yaml.split('\n');
+  let section=null,cur=null;
+  const parsePoint=s=>{
+    const m=s.match(/x:\s*([\d.e+-]+),\s*y:\s*([\d.e+-]+)/);
+    return m?{x:+m[1],y:+m[2]}:null;
+  };
+  for(const raw of lines){
+    const line=raw.trimEnd();
+    const trimmed=line.trim();
+    if(trimmed==='nodes:'){section='nodes';continue;}
+    if(trimmed==='edges:'){section='edges';continue;}
+    if(trimmed==='labels:'){section='labels';continue;}
+    if(!trimmed||trimmed.startsWith('#'))continue;
+    if(section==='nodes'){
+      const m=line.match(/^\s{2}([^:]+):\s*\{(.+)\}/);
+      if(m){const pt=parsePoint(m[2]);if(pt)state.nodes[m[1].trim()]=pt;}
+    }else if(section==='edges'){
+      if(trimmed.startsWith('- src:')){cur={src:trimmed.slice(6).trim()};state.edges.push(cur);}
+      else if(cur){
+        const m=trimmed.match(/^(\w+):\s*(.*)/);
+        if(m){if(m[1]==='tgt')cur.tgt=m[2].trim();
+          else{const pt=parsePoint(m[2]);if(pt)cur[m[1]]=pt;}}
+      }
+    }else if(section==='labels'){
+      if(trimmed.startsWith('- src:')){cur={src:trimmed.slice(6).trim()};state.labels.push(cur);}
+      else if(cur){
+        const m=trimmed.match(/^(\w+):\s*(.*)/);
+        if(m){if(m[1]==='tgt')cur.tgt=m[2].trim();
+          else if(m[1]==='tx'){const pt=parsePoint(m[2]);if(pt)cur.tx=pt;}}
+      }
+    }
+  }
+  return state;
+}
+
+function buildMermanState(){
+  // Collect all current edge control point positions
+  const edges=edgeConnections.map(conn=>({
+    src: conn.srcG ? nodeIdFrom(conn.srcG) : null,
+    tgt: conn.tgtG ? nodeIdFrom(conn.tgtG) : null,
+    p1: conn.p1, c1: conn.c1, c2: conn.c2, p2: conn.p2,
+  }));
+  // Collect cluster positions
+  const clusters={};
+  if(currentSVG){
+    currentSVG.querySelectorAll('g.cluster').forEach(cl=>{
+      const key='cluster:'+cl.id;
+      const pos=userPositions.get(key);
+      if(pos)clusters[cl.id]=pos;
+    });
+  }
+  // Collect label positions from edgeConnections
+  const labels=edgeConnections
+    .filter(conn=>conn.labelG)
+    .map(conn=>{
+      const tx=parseTx(conn.labelG.getAttribute('transform'));
+      return{src:nodeIdFrom(conn.srcG),tgt:nodeIdFrom(conn.tgtG),tx};
+    });
+  return{
+    version:1,
+    nodes: Object.fromEntries(userPositions),
+    edges,
+    labels,
+  };
+}
+
+document.getElementById('saveBtn').addEventListener('click',async()=>{
+  const src=editor.value.trim();
+  if(!src){alert('Nothing to save.');return;}
+  const state=buildMermanState();
+  const content=src+'\n'+DELIM+'\n'+stateToYaml(state);
+  const blob=new Blob([content],{type:'text/plain'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  const fname=(document.getElementById('filename').value.trim()||'Untitled').replace(/\.merman$|\.mmn$/i,'');
+  const saveContent=content;
+  if(window.showSaveFilePicker){
+    try{
+      const fh=await window.showSaveFilePicker({
+        suggestedName:fname+'.merman',
+        types:[{description:'Merman diagram',accept:{'text/plain':['.merman','.mmn']}}],
+      });
+      const writable=await fh.createWritable();
+      await writable.write(saveContent);
+      await writable.close();
+      // Update filename field from chosen file
+      document.getElementById('filename').value=fh.name.replace(/\.merman$|\.mmn$/i,'');
+      return;
+    }catch(e){
+      if(e.name==='AbortError')return; // user cancelled
+      // fall through to legacy download
+    }
+  }
+  a.download=fname+'.merman';
+  document.body.appendChild(a);a.click();
+  setTimeout(()=>{document.body.removeChild(a);URL.revokeObjectURL(a.href);},100);
+});
+
+document.getElementById('openBtn').addEventListener('click',()=>{
+  document.getElementById('openFile').click();
+});
+
+async function processFile(file){
+  const text=await file.text();
+  const delimIdx=text.indexOf('\n'+DELIM+'\n');
+  if(delimIdx===-1){
+    // No state section — treat as plain Mermaid
+    document.getElementById('filename').value=file.name.replace(/\.merman$|\.mmn$|\.mmd$|\.mermaid$/i,'');
+    clearTimeout(renderTimer);
+    editor.value=text.trim().replace(/<br\s*\/?>/gi,' ');
+    userPositions.clear();edgeSnapshot.clear();
+    undoStack=[];redoStack=[];updateUndoButtons();
+    await render();
+    snapAllEndpoints();
+    requestAnimationFrame(()=>fitView());
+    return;
+  }
+  const mermaidSrc=text.slice(0,delimIdx).trim().replace(/<br\s*\/?>/gi,' ');
+  const stateJson=text.slice(delimIdx+DELIM.length+2).trim();
+  clearTimeout(renderTimer);
+  editor.value=mermaidSrc;
+  // Populate filename from opened file (strip extension)
+  const baseName=file.name.replace(/\.merman$|\.mmn$|\.mmd$|\.mermaid$/i,'');
+  document.getElementById('filename').value=baseName;
+  // Render first so SVG elements exist, then restore state
+  userPositions.clear();edgeSnapshot.clear();
+  await renderWithPositions(null);
+  try{
+    const state=yamlToState(stateJson);
+    // Restore node positions
+    if(state.nodes){
+      Object.entries(state.nodes).forEach(([k,v])=>userPositions.set(k,v));
+    }
+    // Re-render with restored positions
+    await renderWithPositions(null);
+    // Restore edge geometry
+    if(state.edges&&edgeConnections.length){
+      state.edges.forEach(saved=>{
+        const conn=edgeConnections.find(c=>
+          nodeIdFrom(c.srcG)===saved.src&&nodeIdFrom(c.tgtG)===saved.tgt);
+        if(!conn||!conn.pathEl)return;
+        conn.p1=saved.p1;conn.c1=saved.c1;conn.c2=saved.c2;conn.p2=saved.p2;
+        setPathD(conn.pathEl,conn.p1,conn.p2,conn.c1,conn.c2,conn.rectilinear);
+        if(saved.labelTx&&conn.labelG)setTx(conn.labelG,saved.labelTx.x+dx,saved.labelTx.y+dy);
+      });
+      requestAnimationFrame(()=>requestAnimationFrame(()=>{buildHandles(currentSVG);fitView();})); // skip snap — positions restored from file
+    }
+    // Restore label positions
+    if(state.labels){
+      state.labels.forEach(saved=>{
+        const conn=edgeConnections.find(c=>
+          nodeIdFrom(c.srcG)===saved.src&&nodeIdFrom(c.tgtG)===saved.tgt);
+        if(!conn||!conn.labelG)return;
+        setTx(conn.labelG,saved.tx.x,saved.tx.y);
+      });
+      // Wait for paint so getBoundingClientRect is accurate, then rebuild handles
+      requestAnimationFrame(()=>requestAnimationFrame(()=>{
+        buildHandles(currentSVG);
+      }));
+    }
+  }catch(err){
+    alert('Could not restore diagram state: '+err.message);
+  }
+
+}
+
+document.getElementById('openFile').addEventListener('change',async e=>{
+  const file=e.target.files[0];if(!file)return;
+  e.target.value='';
+  await processFile(file);
+});
+</script>
+</body>
+</html>
