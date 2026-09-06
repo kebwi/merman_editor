@@ -36,8 +36,12 @@ PNGs are exported in light mode. The **light/dark** button can assist with previ
 Support for exported SVGs is currently tenuous. Generated SVGs render to a varying degree of correctness by varying SVG tools.
 
 ### Contact
-Merman was created by Keith Wiley (kwiley@keithwiley.com), mostly vibe-coded with Claude.
+Merman was created by Keith Wiley (kwiley@keithwiley.com), mostly vibe-coded with Claude Sonnet 4.6, with minor manual edits.
 
-Repo: https://github.com/kebwi/merman_editor
+Git repo: https://github.com/kebwi/merman_editor
 
-Run it directly from Github without downloading or installing it: https://kebwi.github.io/merman_editor
+Github online application: https://kebwi.github.io/merman_editor
+
+Homepage: https://keithwiley.com/software/merman.shtml
+
+Homepage online application: https://keithwiley.com/software/merman_editor.shtml
