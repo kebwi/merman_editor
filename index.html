@@ -328,7 +328,7 @@ body.light #cinner svg .edgeLabel span{color:#1a1e2e;background:transparent;}
 </head>
 <body>
 <div id="header">
-  <div class="logo">🔱 Mermaid/Merman <span>Editor v1.0.0</span></div>
+  <div class="logo">Mermaid/Merman <span>Editor v1.0.1</span></div>
   <input type="text" id="filename" value="Untitled" spellcheck="false">
   <div class="dot" id="dot"></div>
   <button class="hbtn primary" id="fitBtn">Fit</button>
@@ -419,11 +419,8 @@ body.light #cinner svg .edgeLabel span{color:#1a1e2e;background:transparent;}
         <p>PNGs are exported in light mode. The <strong>light/dark</strong> button can assist with previewing, as can the <strong>Show/Hide controls</strong> button (the controls are still available when hidden and will appear when the cursor is nearby).</p>
         <p>Support for exported SVGs is currently tenuous. Generated SVGs render to a varying degree of correctness by varying SVG tools.</p>
         <h3>Contact</h3>
-        <p>Merman was created by Keith Wiley (<a href="mailto:kwiley@keithwiley.com">kwiley@keithwiley.com</a>), mostly vibe-coded with Claude Sonnet 4.6, with minor manual edits.</p>
-        <p>Git repo: <a href="https://github.com/kebwi/merman_editor" target="_blank">https://github.com/kebwi/merman_editor</a></p>
-        <p>Github online application: <a href="https://kebwi.github.io/merman_editor" target="_blank">https://kebwi.github.io/merman_editor</a></p>
-        <p>Homepage: <a href="https://keithwiley.com/software/merman.shtml" target="_blank">https://keithwiley.com/software/merman.shtml</a></p>
-        <p>Homepage online application: <a href="https://keithwiley.com/software/merman_editor.shtml" target="_blank">https://keithwiley.com/software/merman_editor.shtml</a></p>
+        <p>Merman was created by Keith Wiley (<a href="mailto:kwiley@keithwiley.com">kwiley@keithwiley.com</a>), mostly vibe-coded with Claude.</p>
+        <p><a href="https://github.com/kebwi/merman_editor" target="_blank">https://github.com/kebwi/merman_editor</a></p>
       </div>
     </div>
   </div>
@@ -447,6 +444,7 @@ let renderTimer=null,renderCount=0;
 let currentSVG=null,currentRenderId=null;
 let edgeConnections=[];
 let userPositions=new Map();
+let userDragged=new Set();
 
 // Snapshot of edge geometry taken on mousedown, keyed by "src>tgt".
 // Values: {p1,c1,c2,p2} read from live path d attributes.
@@ -885,6 +883,7 @@ function attachDrag(svgEl){
         }
         _allEO.push(eo);
       });
+      userDragged.add(nodeIdFrom(g));
       dragTarget={type:'node',g,svgEl,
         startTx:parseTx(g.getAttribute('transform')),
         edgeOffsets:_allEO,nodeId:_nid,edgesBefore:snapshotEdges([_nid]),
@@ -997,6 +996,7 @@ function attachDrag(svgEl){
             const _pfx=currentRenderId+'-';
       const _cnid=cluster.id.startsWith(_pfx)?cluster.id.slice(_pfx.length):cluster.id;
       makeEdgeOffsets_cluster(cluster,_cnid).forEach(eo=>allEdgeOffsets.push(eo));
+      userDragged.add('cluster:'+cluster.id);
       dragTarget={type:'cluster',g:cluster,svgEl,
         startTx:parseTx(cluster.getAttribute('transform')),
         nodeStarts,edgeOffsets:allEdgeOffsets,clusterId:cluster.id,clusterNodeId:_cnid,
@@ -1349,8 +1349,53 @@ window.addEventListener('mouseup',()=>{
 
 // ── Render ────────────────────────────────────────────────────────────
 async function render(){
+  // Snapshot current layout before clearing — restore surviving nodes/edges after re-render
+  const _prevPositions=new Map(userPositions);
+  const _prevEdges=[];
+  edgeConnections.forEach(conn=>{
+    if(!conn.pathEl)return;
+    const key=nodeIdFrom(conn.srcG)+'>'+nodeIdFrom(conn.tgtG);
+    const lpos=conn.labelG?parseTx(conn.labelG.getAttribute('transform')):null;
+    _prevEdges.push({key,geom:{p1:{...conn.p1},c1:{...conn.c1},c2:{...conn.c2},p2:{...conn.p2}},lpos});
+  });
+
   userPositions.clear();edgeSnapshot.clear();
   await renderWithPositions(null);
+
+  // Restore positions only for explicitly user-dragged nodes/clusters
+  if(_prevPositions.size>0&&userDragged.size>0&&currentSVG){
+    const rid=currentRenderId;
+    currentSVG.querySelectorAll('g.node').forEach(g=>{
+      const nid=nodeIdFrom(g,rid);
+      if(!userDragged.has(nid))return;
+      const pos=_prevPositions.get(nid);
+      if(pos){setTx(g,pos.x,pos.y);userPositions.set(nid,pos);}
+    });
+    currentSVG.querySelectorAll('g.cluster,g.cluster.undefined').forEach(cl=>{
+      const key='cluster:'+cl.id;
+      if(!userDragged.has(key))return;
+      const pos=_prevPositions.get(key);
+      if(pos){setTx(cl,pos.x,pos.y);userPositions.set(key,pos);}
+    });
+  }
+
+  // Restore edge geometries for edges where both endpoints still exist
+  if(_prevEdges.length>0){
+    const edgeMap=new Map();
+    _prevEdges.forEach(e=>edgeMap.set(e.key,e));
+    edgeConnections.forEach(conn=>{
+      if(!conn.pathEl)return;
+      const key=nodeIdFrom(conn.srcG)+'>'+nodeIdFrom(conn.tgtG);
+      const prev=edgeMap.get(key);
+      if(!prev)return;
+      conn.p1={...prev.geom.p1};conn.c1={...prev.geom.c1};
+      conn.c2={...prev.geom.c2};conn.p2={...prev.geom.p2};
+      setPathD(conn.pathEl,conn.p1,conn.p2,conn.c1,conn.c2,conn.rectilinear);
+      if(conn.labelG&&prev.lpos)setTx(conn.labelG,prev.lpos.x,prev.lpos.y);
+    });
+    buildHandles(currentSVG);
+    applyTx();
+  }
 }
 
 async function renderWithPositions(movedNodeId){
