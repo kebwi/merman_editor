@@ -328,7 +328,7 @@ body.light #cinner svg .edgeLabel span{color:#1a1e2e;background:transparent;}
 </head>
 <body>
 <div id="header">
-  <div class="logo">Mermaid/Merman <span>Editor v1.0.1</span></div>
+  <div class="logo">Mermaid/Merman <span>Editor v1.0.2</span></div>
   <input type="text" id="filename" value="Untitled" spellcheck="false">
   <div class="dot" id="dot"></div>
   <button class="hbtn primary" id="fitBtn">Fit</button>
@@ -1379,8 +1379,8 @@ async function render(){
     });
   }
 
-  // Restore edge geometries for edges where both endpoints still exist
-  if(_prevEdges.length>0){
+  // Restore edge geometries only if user has dragged something (skip on Reset)
+  if(_prevEdges.length>0&&userDragged.size>0){
     const edgeMap=new Map();
     _prevEdges.forEach(e=>edgeMap.set(e.key,e));
     edgeConnections.forEach(conn=>{
@@ -1912,7 +1912,7 @@ function fitView(){
   applyTx();
 
 };
-document.getElementById('resetBtn').onclick=()=>render();
+document.getElementById('resetBtn').onclick=()=>{userPositions.clear();edgeSnapshot.clear();userDragged.clear();render();};
 
 // ── Light/dark toggle ─────────────────────────────────────────────────
 const themeBtn=document.getElementById('themeBtn');
