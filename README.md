@@ -5,7 +5,7 @@ Merman is a mermaid diagram editor and also a file format. It extends convention
 
 * Clicking the Open button to find a .mmd/.mermaid/.mmn/.merman file.
 * Dragging a .mmd/.mermaid/.mmn/.merman file into the workspace.
-* Pasting mermaid code into the syntax editor.
+* Pasting mermaid or merman code into the syntax editor.
 
 Saved **merman** files use a file format that appends layout details to the end of a standard mermaid file. You can always recover a mermaid file from a merman file by simply discarding the merman information after the obvious demarcation point in the file.
 
