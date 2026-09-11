@@ -328,7 +328,7 @@ body.light #cinner svg .edgeLabel span{color:#1a1e2e;background:transparent;}
 </head>
 <body>
 <div id="header">
-  <div class="logo">🔱 Merman: <span>Mermaid Editor <i>v1.0.4</i></span></div>
+  <div class="logo">🔱 Merman: <span>Mermaid Editor <i>v1.0.5</i></span></div>
   <input type="text" id="filename" value="Untitled" spellcheck="false">
   <div class="dot" id="dot"></div>
   <button class="hbtn primary" id="fitBtn">Fit</button>
@@ -1280,11 +1280,20 @@ window.addEventListener('mouseup',()=>{
     });
     if(target.type==='cluster'){
       const afterCl=parseTx(target.g.getAttribute('transform'));
+      // Store with both full and bare ID for cross-render restoration
       userPositions.set('cluster:'+target.g.id,afterCl);
+      const _pfxS=currentRenderId+'-';
+      const _bareId=target.g.id.startsWith(_pfxS)?target.g.id.slice(_pfxS.length):target.g.id;
+      userPositions.set('cluster:'+_bareId,afterCl);
       const nodesAfter=[];
       if(target.nodeStarts)target.nodeStarts.forEach(({nodeG})=>{
-        const nid=nodeIdFrom(nodeG);const pos=parseTx(nodeG.getAttribute('transform'));
-        userPositions.set(nid,pos);nodesAfter.push({nodeId:nid,pos});
+        const _cls=(nodeG.getAttribute('class')||'').includes('cluster');
+        const nidFull=(_cls?'cluster:':'')+nodeG.id;
+        const nidBare=(_cls?'cluster:':'')+nodeIdFrom(nodeG);
+        const pos=parseTx(nodeG.getAttribute('transform'));
+        userPositions.set(nidFull,pos);
+        if(nidBare!==nidFull)userPositions.set(nidBare,pos);
+        nodesAfter.push({nodeId:nidBare,pos});
       });
       const innerIds=(target.nodeStarts||[]).map(ns=>nodeIdFrom(ns.nodeG));
       pushHistory({type:'cluster-move',clusterId:target.clusterId||target.g.id,
@@ -1472,7 +1481,9 @@ async function renderWithPositions(movedNodeId){
       if(pos)setTx(g,pos.x,pos.y);
     });
     svgEl.querySelectorAll('g.cluster').forEach(cl=>{
-      const pos=userPositions.get('cluster:'+cl.id);
+      const _pfx=currentRenderId+'-';
+      const _clBare=cl.id.startsWith(_pfx)?cl.id.slice(_pfx.length):cl.id;
+      const pos=userPositions.get('cluster:'+cl.id)||userPositions.get('cluster:'+_clBare);
       if(pos)setTx(cl,pos.x,pos.y);
     });
     await new Promise(r=>requestAnimationFrame(r));
@@ -1589,7 +1600,7 @@ editor.addEventListener('input',async ()=>{
     try{
       const _state=yamlToState(_stateJson);
       if(_state.nodes){
-        Object.entries(_state.nodes).forEach(([k,v])=>userPositions.set(k,v));
+          Object.entries(_state.nodes).forEach(([k,v])=>userPositions.set(k,v));
       }
       await renderWithPositions(null);
       if(_state.edges&&edgeConnections.length){
@@ -2556,7 +2567,7 @@ function yamlToState(yaml){
     if(trimmed==='labels:'){section='labels';continue;}
     if(!trimmed||trimmed.startsWith('#'))continue;
     if(section==='nodes'){
-      const m=line.match(/^\s{2}([^:]+):\s*\{(.+)\}/);
+      const m=line.match(/^\s{2}(.+?):\s*\{(.+)\}/);
       if(m){const pt=parsePoint(m[2]);if(pt)state.nodes[m[1].trim()]=pt;}
     }else if(section==='edges'){
       if(trimmed.startsWith('- src:')){cur={src:trimmed.slice(6).trim()};state.edges.push(cur);}
