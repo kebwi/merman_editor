@@ -328,7 +328,7 @@ body.light #cinner svg .edgeLabel span{color:#1a1e2e;background:transparent;}
 </head>
 <body>
 <div id="header">
-  <div class="logo">🔱 Merman: <span>Mermaid Editor <i>v1.0.7</i></span></div>
+  <div class="logo">🔱 Merman: <span>Mermaid Editor <i>v1.0.8</i></span></div>
   <input type="text" id="filename" value="Untitled" spellcheck="false">
   <div class="dot" id="dot"></div>
   <button class="hbtn primary" id="fitBtn">Fit</button>
@@ -1277,6 +1277,50 @@ function snapToBorder(nodeG, pt, hasArrow=true, bigArrow=false, zeroOffset=false
     }
   }
 
+  // Pill nodes ([ ]) — stadium shape: rect middle with semicircles on left/right
+  const _isPill=!!(nodeG.querySelector('g.basic.label-container.outer-path'));
+  if(_isPill){
+    const b2=absBox(nodeG);
+    const pr=b2.h/2; // semicircle radius = half height
+    const lcx=b2.x+pr;   // left semicircle center x
+    const rcx=b2.x+b2.w-pr; // right semicircle center x
+    const mcy=b2.y+b2.h/2; // vertical center
+    // Determine which zone pt is in
+    if(pt.x<=lcx){
+      // Left semicircle
+      const angle=Math.atan2(pt.y-mcy,pt.x-lcx);
+      return{x:lcx+Math.cos(angle)*(pr+OFFSET),y:mcy+Math.sin(angle)*(pr+OFFSET)};
+    } else if(pt.x>=rcx){
+      // Right semicircle
+      const angle=Math.atan2(pt.y-mcy,pt.x-rcx);
+      return{x:rcx+Math.cos(angle)*(pr+OFFSET),y:mcy+Math.sin(angle)*(pr+OFFSET)};
+    } else {
+      // Flat top or bottom
+      const distTop=Math.abs(pt.y-b2.y);
+      const distBot=Math.abs(pt.y-(b2.y+b2.h));
+      if(distTop<distBot)
+        return{x:Math.max(lcx,Math.min(rcx,pt.x)),y:b2.y-OFFSET};
+      else
+        return{x:Math.max(lcx,Math.min(rcx,pt.x)),y:b2.y+b2.h+OFFSET};
+    }
+  }
+
+  // Circle nodes (( )) — snap to circumference
+  const _circle=nodeG.querySelector('circle.label-container')||nodeG.querySelector('circle.basic');
+  if(_circle){
+    const cr=parseFloat(_circle.getAttribute('r')||0);
+    const{ox,oy}=ancestorOffset(_circle);
+    const tc=parseTx(_circle.getAttribute('transform'));
+    const ccx=ox+tc.x+parseFloat(_circle.getAttribute('cx')||0);
+    const ccy=oy+tc.y+parseFloat(_circle.getAttribute('cy')||0);
+    // Angle from circle center toward pt
+    const angle=Math.atan2(pt.y-ccy,pt.x-ccx);
+    return{
+      x:ccx+Math.cos(angle)*(cr+OFFSET),
+      y:ccy+Math.sin(angle)*(cr+OFFSET)
+    };
+  }
+
   // Default: snap to nearest rectangle side
   const dists=[
     {side:'top',    d:Math.abs(pt.y-b.y)},
@@ -1937,6 +1981,50 @@ function snapToBorder(nodeG, pt, hasArrow=true, bigArrow=false, zeroOffset=false
     }
   }
 
+  // Pill nodes ([ ]) — stadium shape: rect middle with semicircles on left/right
+  const _isPill=!!(nodeG.querySelector('g.basic.label-container.outer-path'));
+  if(_isPill){
+    const b2=absBox(nodeG);
+    const pr=b2.h/2; // semicircle radius = half height
+    const lcx=b2.x+pr;   // left semicircle center x
+    const rcx=b2.x+b2.w-pr; // right semicircle center x
+    const mcy=b2.y+b2.h/2; // vertical center
+    // Determine which zone pt is in
+    if(pt.x<=lcx){
+      // Left semicircle
+      const angle=Math.atan2(pt.y-mcy,pt.x-lcx);
+      return{x:lcx+Math.cos(angle)*(pr+OFFSET),y:mcy+Math.sin(angle)*(pr+OFFSET)};
+    } else if(pt.x>=rcx){
+      // Right semicircle
+      const angle=Math.atan2(pt.y-mcy,pt.x-rcx);
+      return{x:rcx+Math.cos(angle)*(pr+OFFSET),y:mcy+Math.sin(angle)*(pr+OFFSET)};
+    } else {
+      // Flat top or bottom
+      const distTop=Math.abs(pt.y-b2.y);
+      const distBot=Math.abs(pt.y-(b2.y+b2.h));
+      if(distTop<distBot)
+        return{x:Math.max(lcx,Math.min(rcx,pt.x)),y:b2.y-OFFSET};
+      else
+        return{x:Math.max(lcx,Math.min(rcx,pt.x)),y:b2.y+b2.h+OFFSET};
+    }
+  }
+
+  // Circle nodes (( )) — snap to circumference
+  const _circle=nodeG.querySelector('circle.label-container')||nodeG.querySelector('circle.basic');
+  if(_circle){
+    const cr=parseFloat(_circle.getAttribute('r')||0);
+    const{ox,oy}=ancestorOffset(_circle);
+    const tc=parseTx(_circle.getAttribute('transform'));
+    const ccx=ox+tc.x+parseFloat(_circle.getAttribute('cx')||0);
+    const ccy=oy+tc.y+parseFloat(_circle.getAttribute('cy')||0);
+    // Angle from circle center toward pt
+    const angle=Math.atan2(pt.y-ccy,pt.x-ccx);
+    return{
+      x:ccx+Math.cos(angle)*(cr+OFFSET),
+      y:ccy+Math.sin(angle)*(cr+OFFSET)
+    };
+  }
+
   // Default: snap to nearest rectangle side
   const dists=[
     {side:'top',    d:Math.abs(pt.y-b.y)},
@@ -2239,6 +2327,50 @@ function snapToBorder(nodeG, pt, hasArrow=true, bigArrow=false, zeroOffset=false
       return{x:best.x+(best.x-cx)/len*OFFSET,
              y:best.y+(best.y-cy)/len*OFFSET};
     }
+  }
+
+  // Pill nodes ([ ]) — stadium shape: rect middle with semicircles on left/right
+  const _isPill=!!(nodeG.querySelector('g.basic.label-container.outer-path'));
+  if(_isPill){
+    const b2=absBox(nodeG);
+    const pr=b2.h/2; // semicircle radius = half height
+    const lcx=b2.x+pr;   // left semicircle center x
+    const rcx=b2.x+b2.w-pr; // right semicircle center x
+    const mcy=b2.y+b2.h/2; // vertical center
+    // Determine which zone pt is in
+    if(pt.x<=lcx){
+      // Left semicircle
+      const angle=Math.atan2(pt.y-mcy,pt.x-lcx);
+      return{x:lcx+Math.cos(angle)*(pr+OFFSET),y:mcy+Math.sin(angle)*(pr+OFFSET)};
+    } else if(pt.x>=rcx){
+      // Right semicircle
+      const angle=Math.atan2(pt.y-mcy,pt.x-rcx);
+      return{x:rcx+Math.cos(angle)*(pr+OFFSET),y:mcy+Math.sin(angle)*(pr+OFFSET)};
+    } else {
+      // Flat top or bottom
+      const distTop=Math.abs(pt.y-b2.y);
+      const distBot=Math.abs(pt.y-(b2.y+b2.h));
+      if(distTop<distBot)
+        return{x:Math.max(lcx,Math.min(rcx,pt.x)),y:b2.y-OFFSET};
+      else
+        return{x:Math.max(lcx,Math.min(rcx,pt.x)),y:b2.y+b2.h+OFFSET};
+    }
+  }
+
+  // Circle nodes (( )) — snap to circumference
+  const _circle=nodeG.querySelector('circle.label-container')||nodeG.querySelector('circle.basic');
+  if(_circle){
+    const cr=parseFloat(_circle.getAttribute('r')||0);
+    const{ox,oy}=ancestorOffset(_circle);
+    const tc=parseTx(_circle.getAttribute('transform'));
+    const ccx=ox+tc.x+parseFloat(_circle.getAttribute('cx')||0);
+    const ccy=oy+tc.y+parseFloat(_circle.getAttribute('cy')||0);
+    // Angle from circle center toward pt
+    const angle=Math.atan2(pt.y-ccy,pt.x-ccx);
+    return{
+      x:ccx+Math.cos(angle)*(cr+OFFSET),
+      y:ccy+Math.sin(angle)*(cr+OFFSET)
+    };
   }
 
   // Default: snap to nearest rectangle side
