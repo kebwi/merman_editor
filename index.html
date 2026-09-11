@@ -328,7 +328,7 @@ body.light #cinner svg .edgeLabel span{color:#1a1e2e;background:transparent;}
 </head>
 <body>
 <div id="header">
-  <div class="logo">🔱 Merman: <span>Mermaid Editor <i>v1.0.3</i></span></div>
+  <div class="logo">🔱 Merman: <span>Mermaid Editor <i>v1.0.4</i></span></div>
   <input type="text" id="filename" value="Untitled" spellcheck="false">
   <div class="dot" id="dot"></div>
   <button class="hbtn primary" id="fitBtn">Fit</button>
@@ -1348,19 +1348,6 @@ window.addEventListener('mouseup',()=>{
 });
 
 // ── Render ────────────────────────────────────────────────────────────
-// Escape unknown HTML-like tags inside quoted strings (e.g. <N> -> &lt;N&gt;)
-// Known HTML tags used by Mermaid (br, sub, sup, etc.) are preserved
-const KNOWN_HTML=/^(br|sub|sup|b|i|em|strong|code|span|div|p|s|u|tt)/i;
-function escapeAngleBrackets(src){
-  return src.replace(/"([^"]*)"/g,(_,inner)=>{
-    const escaped=inner.replace(/<([^>]+)>/g,(tag,content)=>{
-      if(KNOWN_HTML.test(content)||content.startsWith('/'))return tag;
-      return '&lt;'+content+'&gt;';
-    });
-    return '"'+escaped+'"';
-  });
-}
-
 async function render(){
   // Snapshot current layout before clearing — restore surviving nodes/edges after re-render
   const _prevPositions=new Map(userPositions);
@@ -1420,8 +1407,8 @@ async function renderWithPositions(movedNodeId){
   try{const r=await mermaid.render(rid,src);svgText=r.svg;setErr(null);}
   catch(e){setErr(e.message||String(e));return;}
   ph.style.display='none';
-  const doc=new DOMParser().parseFromString(svgText,'image/svg+xml');
-  const svgEl=doc.querySelector('svg');if(!svgEl)return;
+  const _tmp=document.createElement('div');_tmp.innerHTML=svgText;
+  const svgEl=_tmp.querySelector('svg');if(!svgEl)return;
   svgEl.removeAttribute('width');svgEl.removeAttribute('height');
   svgEl.style.overflow='visible';
   cinner.innerHTML='';cinner.appendChild(svgEl);
@@ -1565,32 +1552,22 @@ function setErr(msg){
   else{errbox.style.display='none';dot.classList.remove('err');}
 }
 editor.addEventListener('paste',()=>{undoStack=[];redoStack=[];updateUndoButtons();});
-let _suppressInput=false;
-editor.addEventListener('paste',()=>{
-  _suppressInput=true;
-  setTimeout(()=>{
-    const pv=editor.value;
-    // Fix real newlines inside quoted strings -> <br/> in backtick form
-    // Match "..." that span multiple lines (real newlines inside quotes)
-    const converted=escapeAngleBrackets(pv).replace(/"([^"]*)"/gs,(_,inner)=>{
-      if(!inner.includes('\n')&&!inner.includes('\\n'))return '"'+inner+'"';
-      return '"\`'+inner.replace(/\n/g,'<br/>').replace(/\\n/g,'<br/>')+'\`"';
-    }); // keep surrounding quotes, use backtick markdown inside
-    if(converted!==pv){
-      const pos=editor.selectionStart;
-      editor.value=converted;
-      editor.selectionStart=editor.selectionEnd=pos;
-    }
-    _suppressInput=false;
-    editor.dispatchEvent(new Event('input'));
-  },0);
-});
 editor.addEventListener('input',async ()=>{
-  if(_suppressInput)return;
   undoStack=[];redoStack=[];updateUndoButtons();
-  // Strip <br/> tags in place so Mermaid always gets clean input
+  // Pass source to Mermaid as-is, only strip <br> tags outside quoted strings
   const v=editor.value;
-  let cleaned=escapeAngleBrackets(v).replace(/<br\s*\/?>/gi,' ');
+  // Simple approach: only strip <br> when outside all quotes
+  let cleaned='';
+  let inQuote=false;
+  let i=0;
+  while(i<v.length){
+    if(v[i]==='"'){inQuote=!inQuote;cleaned+=v[i++];continue;}
+    if(!inQuote&&v.slice(i).match(/^<br\s*\/?>/i)){
+      const m=v.slice(i).match(/^<br\s*\/?>/i);
+      cleaned+=' ';i+=m[0].length;continue;
+    }
+    cleaned+=v[i++];
+  }
   if(cleaned!==v){
     const pos=editor.selectionStart;
     editor.value=cleaned;
