@@ -328,7 +328,7 @@ body.light #cinner svg .edgeLabel span{color:#1a1e2e;background:transparent;}
 </head>
 <body>
 <div id="header">
-  <div class="logo">🔱 Merman: <span>Mermaid Editor <i>v1.0.5</i></span></div>
+  <div class="logo">🔱 Merman: <span>Mermaid Editor <i>v1.0.6</i></span></div>
   <input type="text" id="filename" value="Untitled" spellcheck="false">
   <div class="dot" id="dot"></div>
   <button class="hbtn primary" id="fitBtn">Fit</button>
@@ -345,14 +345,16 @@ body.light #cinner svg .edgeLabel span{color:#1a1e2e;background:transparent;}
     <div class="plabel">Mermaid source</div>
     <textarea id="editor" spellcheck="false">graph TD
   A[Start] --> B{Is it working?}
-  B -- Yes --> C("`***Great!***`")
+  B -- Yes --> C[["`***Great!***`"]]
   B -- No --> D(Debug it)
-  D -.-> E[Fix the bug]
+  D -.-> E([Fix the bug])
+  C o==o G[(Data)]
   E ==> B
   C -.-> F{{Ship it}}
   subgraph Success
     C
     F
+    G
   end
   subgraph Failure
     D
@@ -372,7 +374,7 @@ body.light #cinner svg .edgeLabel span{color:#1a1e2e;background:transparent;}
       <button class="tbtn" id="themeBtn" title="Toggle light/dark mode">☀️</button>
       <button class="tbtn" id="previewBtn">Hide controls</button>
       <label class="ui-desc-label">Control point size:
-        <input type="range" id="cpSizeSlider" min="0.5" max="1.5" step="0.05" value="1">
+        <input type="range" id="cpSizeSlider" min="0.5" max="3.0" step="0.05" value="1">
       </label>
       <label class="ui-desc-label">Zoom:
         <button class="tbtn" id="zOutBtn">&#8722;</button>
@@ -464,11 +466,14 @@ function setTx(el,x,y){
   el.setAttribute('transform',(rest?rest+' ':'')+'translate('+x+','+y+')');
 }
 function absBox(g){
-  let b;try{b=g.getBBox();}catch(_){return{cx:0,cy:0,x:0,y:0,w:0,h:0};}
+  // Use label-container element for accurate visual border (avoids label text skewing bbox)
+  const container=g&&(g.querySelector('.label-container')||g.querySelector('rect')||g.querySelector('circle')||g.querySelector('ellipse'));
+  let b;
+  try{b=(container||g).getBBox();}catch(_){return{cx:0,cy:0,x:0,y:0,w:0,h:0};}
   // Accumulate all ancestor transforms up to SVG root
-  const{ox,oy}=ancestorOffset(g);
-  // Also include the element's own transform
-  const t=parseTx(g.getAttribute('transform'));
+  const refEl=container||g;
+  const{ox,oy}=ancestorOffset(refEl);
+  const t=parseTx(refEl.getAttribute('transform'));
   const tx=ox+t.x, ty=oy+t.y;
   return{x:tx+b.x,y:ty+b.y,w:b.width,h:b.height,
          cx:tx+b.x+b.width/2,cy:ty+b.y+b.height/2};
@@ -742,12 +747,20 @@ function buildHandles(svgEl){
     if(conn.rectilinear)return; // no handles for rectilinear (swimlane) connections
     // Faint hollow circle for src endpoint
     conn.h1=mkCircle(layer,conn.p1.x,conn.p1.y,'transparent','crosshair',{handleType:'endpoint',edgeIdx:i,end:'src'});
+    /* ARROWHEAD-HANDLE-HIDING (re-enable to hide endpoint handles after debugging)
     conn.h1.setAttribute('fill-opacity','0');
     conn.h1.setAttribute('stroke','rgba(255,255,255,0.25)');
-    // Faint hollow circle for tgt endpoint
+    */
+    conn.h1.setAttribute('fill-opacity','0.45');
+    conn.h1.setAttribute('stroke','#fff');
+    // Hollow circle for tgt endpoint
     conn.h2=mkCircle(layer,conn.p2.x,conn.p2.y,'transparent','crosshair',{handleType:'endpoint',edgeIdx:i,end:'tgt'});
+    /* ARROWHEAD-HANDLE-HIDING (re-enable to hide endpoint handles after debugging)
     conn.h2.setAttribute('fill-opacity','0');
     conn.h2.setAttribute('stroke','rgba(255,255,255,0.25)');
+    */
+    conn.h2.setAttribute('fill-opacity','0.45');
+    conn.h2.setAttribute('stroke','#fff');
     if(conn.c1&&conn.c2){
       // Two control point handles: hc1 near source, hc2 near target
       // Dashed stem lines from control points to their endpoints
@@ -1163,7 +1176,8 @@ function snapAllEndpoints(){
     const _srcZero=false;
     const _isState=/stateDiagram/i.test(editor.value);
     const _srcDepend=_isClass&&/dependency/i.test(_srcMarker);
-    const _srcOpts=_isState&&_hasSrcArrow?{offset:2}:_srcDepend?{offset:7}:{};
+    const _srcCircle=/circle/i.test(_srcMarker);
+    const _srcOpts=_isState&&_hasSrcArrow?{offset:2}:_srcDepend?{offset:7}:_srcCircle?{offset:0}:{};
     const snappedSrc=snapToBorder(conn.srcG,conn.p1,_hasSrcArrow,_isClass,_srcZero,_srcOpts);
     const dxSrc=snappedSrc.x-conn.p1.x,dySrc=snappedSrc.y-conn.p1.y;
     conn.p1=snappedSrc;conn.c1={x:conn.c1.x+dxSrc,y:conn.c1.y+dySrc};
@@ -1175,7 +1189,8 @@ function snapAllEndpoints(){
     const _tgtMarker=conn.pathEl.getAttribute('marker-end')||'';
     const _tgtZero=false;
     const _tgtDepend=_isClass&&/dependency/i.test(_tgtMarker);
-    const _tgtOpts=_isState&&_hasTgtArrow?{offset:2}:_tgtDepend?{offset:7}:{};
+    const _tgtCircle=/circle/i.test(_tgtMarker);
+    const _tgtOpts=_isState&&_hasTgtArrow?{offset:2}:_tgtDepend?{offset:7}:_tgtCircle?{offset:0}:{};
     const snappedTgt=snapToBorder(conn.tgtG,conn.p2,_hasTgtArrow,_isClass,_tgtZero,_tgtOpts);
     const dxTgt=snappedTgt.x-conn.p2.x,dyTgt=snappedTgt.y-conn.p2.y;
     conn.p2=snappedTgt;conn.c2={x:conn.c2.x+dxTgt,y:conn.c2.y+dyTgt};
@@ -1184,7 +1199,15 @@ function snapAllEndpoints(){
   buildHandles(currentSVG);
 }
 
-function snapToBorder(nodeG, pt, hasArrow=true, bigArrow=false, zeroOffset=false, opts={}){
+function isSubroutineNode(nodeG){
+  // Double-bracket [[...]] nodes have a polygon with 10 points (diamond has 4)
+  const poly=nodeG&&nodeG.querySelector('polygon.label-container');
+  if(!poly)return false;
+  const pts=(poly.getAttribute('points')||'').trim().split(/\s+/);
+  return pts.length>4;
+}
+
+function snapToBorder(nodeG, pt, hasArrow=true, bigArrow=false, zeroOffset=false, opts={}) {
   // opts.offset: explicit override (takes priority over all flags)
   let OFFSET;
   if(!hasArrow)            OFFSET=0;
@@ -1192,13 +1215,17 @@ function snapToBorder(nodeG, pt, hasArrow=true, bigArrow=false, zeroOffset=false
   else if(bigArrow)        OFFSET=18;
   else                     OFFSET=5;
   if(opts.offset!==undefined) OFFSET=opts.offset;
+  // Subroutine nodes [[...]] have bracket lines 8px beyond their bounding box
+  // Only add for zero-offset cases (circles, no arrow); triangular arrows already work at their natural offset
+  if(OFFSET===0&&isSubroutineNode(nodeG)) OFFSET+=0;
   const b=absBox(nodeG);
   const cx=b.cx, cy=b.cy;
 
-  // Check if node is diamond-shaped (contains a polygon or rotated rect)
-  const poly=nodeG.querySelector('polygon')||nodeG.querySelector('path.label-container');
-  const isDiamond=nodeG.querySelector('polygon')!==null||
-    (nodeG.getAttribute('class')||'').includes('diamond');
+  // Check polygon type by point count
+  const _poly=nodeG.querySelector('polygon.label-container');
+  const _polyPts=_poly?(_poly.getAttribute('points')||'').trim().split(/\s+/).length:0;
+  const isDiamond=_polyPts===4;
+  const isHexagon=_polyPts===6;
 
   if(isDiamond){
     // Diamond corners: top, right, bottom, left
@@ -1224,6 +1251,26 @@ function snapToBorder(nodeG, pt, hasArrow=true, bigArrow=false, zeroOffset=false
     });
     if(best){
       // Offset outward from center
+      const len=Math.hypot(best.x-cx,best.y-cy)||1;
+      return{x:best.x+(best.x-cx)/len*OFFSET,
+             y:best.y+(best.y-cy)/len*OFFSET};
+    }
+  }
+
+  if(isHexagon&&_poly){
+    // Parse actual polygon points and use ray-segment intersection (same as diamond)
+    const rawPts=(_poly.getAttribute('points')||'').trim().split(/\s+/);
+    const{ox,oy}=ancestorOffset(_poly);
+    const tpoly=parseTx(_poly.getAttribute('transform'));
+    const ptx=ox+tpoly.x, pty=oy+tpoly.y;
+    const hexPts=rawPts.map(p=>{const[px,py]=p.split(',').map(Number);return{x:ptx+px,y:pty+py};});
+    let best=null,bestD=Infinity;
+    for(let i=0;i<hexPts.length;i++){
+      const a=hexPts[i],e=hexPts[(i+1)%hexPts.length];
+      const hit=raySegIntersect(cx,cy,pt.x,pt.y,a.x,a.y,e.x,e.y);
+      if(hit){const d=Math.hypot(hit.x-pt.x,hit.y-pt.y);if(d<bestD){bestD=d;best=hit;}}
+    }
+    if(best){
       const len=Math.hypot(best.x-cx,best.y-cy)||1;
       return{x:best.x+(best.x-cx)/len*OFFSET,
              y:best.y+(best.y-cy)/len*OFFSET};
@@ -1330,7 +1377,8 @@ window.addEventListener('mouseup',()=>{
         const _dragMarker=(isSrc?conn.pathEl.getAttribute('marker-start'):conn.pathEl.getAttribute('marker-end'))||'';
         const _isStateDiag=/stateDiagram/i.test(editor.value);
         const _dragDepend=_isClassDiagram&&/dependency/i.test(_dragMarker);
-        const _dragOpts=_isStateDiag&&_hasArrow?{offset:2}:_dragDepend?{offset:7}:{};
+        const _dragCircle=/circle/i.test(_dragMarker);
+        const _dragOpts=_isStateDiag&&_hasArrow?{offset:2}:_dragDepend?{offset:7}:_dragCircle?{offset:0}:{};
         const snapped=snapToBorder(nodeG,isSrc?conn.p1:conn.p2,_hasArrow,_isClassDiagram,false,_dragOpts);
         if(isSrc){const dx=snapped.x-conn.p1.x,dy=snapped.y-conn.p1.y;
           conn.p1=snapped;conn.c1={x:conn.c1.x+dx,y:conn.c1.y+dy};}
@@ -1652,7 +1700,7 @@ cwrap.addEventListener('wheel',e=>{
   const r=cwrap.getBoundingClientRect();
   const mx=e.clientX-r.left,my=e.clientY-r.top;
   const fac=e.deltaY<0?1.12:1/1.12;
-  const nz=Math.min(4,Math.max(0.1,zoom*fac));
+  const nz=Math.min(20,Math.max(0.1,zoom*fac));
   panX=mx-(mx-panX)*(nz/zoom);panY=my-(my-panY)*(nz/zoom);zoom=nz;applyTx();
 },{passive:false});
 let spaceDown=false,altDown=false;
@@ -1788,7 +1836,8 @@ function snapAllEndpoints(){
     const _srcZero=false;
     const _isState=/stateDiagram/i.test(editor.value);
     const _srcDepend=_isClass&&/dependency/i.test(_srcMarker);
-    const _srcOpts=_isState&&_hasSrcArrow?{offset:2}:_srcDepend?{offset:7}:{};
+    const _srcCircle=/circle/i.test(_srcMarker);
+    const _srcOpts=_isState&&_hasSrcArrow?{offset:2}:_srcDepend?{offset:7}:_srcCircle?{offset:0}:{};
     const snappedSrc=snapToBorder(conn.srcG,conn.p1,_hasSrcArrow,_isClass,_srcZero,_srcOpts);
     const dxSrc=snappedSrc.x-conn.p1.x,dySrc=snappedSrc.y-conn.p1.y;
     conn.p1=snappedSrc;conn.c1={x:conn.c1.x+dxSrc,y:conn.c1.y+dySrc};
@@ -1800,7 +1849,8 @@ function snapAllEndpoints(){
     const _tgtMarker=conn.pathEl.getAttribute('marker-end')||'';
     const _tgtZero=false;
     const _tgtDepend=_isClass&&/dependency/i.test(_tgtMarker);
-    const _tgtOpts=_isState&&_hasTgtArrow?{offset:2}:_tgtDepend?{offset:7}:{};
+    const _tgtCircle=/circle/i.test(_tgtMarker);
+    const _tgtOpts=_isState&&_hasTgtArrow?{offset:2}:_tgtDepend?{offset:7}:_tgtCircle?{offset:0}:{};
     const snappedTgt=snapToBorder(conn.tgtG,conn.p2,_hasTgtArrow,_isClass,_tgtZero,_tgtOpts);
     const dxTgt=snappedTgt.x-conn.p2.x,dyTgt=snappedTgt.y-conn.p2.y;
     conn.p2=snappedTgt;conn.c2={x:conn.c2.x+dxTgt,y:conn.c2.y+dyTgt};
@@ -1809,7 +1859,15 @@ function snapAllEndpoints(){
   buildHandles(currentSVG);
 }
 
-function snapToBorder(nodeG, pt, hasArrow=true, bigArrow=false, zeroOffset=false, opts={}){
+function isSubroutineNode(nodeG){
+  // Double-bracket [[...]] nodes have a polygon with 10 points (diamond has 4)
+  const poly=nodeG&&nodeG.querySelector('polygon.label-container');
+  if(!poly)return false;
+  const pts=(poly.getAttribute('points')||'').trim().split(/\s+/);
+  return pts.length>4;
+}
+
+function snapToBorder(nodeG, pt, hasArrow=true, bigArrow=false, zeroOffset=false, opts={}) {
   // opts.offset: explicit override (takes priority over all flags)
   let OFFSET;
   if(!hasArrow)            OFFSET=0;
@@ -1817,13 +1875,17 @@ function snapToBorder(nodeG, pt, hasArrow=true, bigArrow=false, zeroOffset=false
   else if(bigArrow)        OFFSET=18;
   else                     OFFSET=5;
   if(opts.offset!==undefined) OFFSET=opts.offset;
+  // Subroutine nodes [[...]] have bracket lines 8px beyond their bounding box
+  // Only add for zero-offset cases (circles, no arrow); triangular arrows already work at their natural offset
+  if(OFFSET===0&&isSubroutineNode(nodeG)) OFFSET+=0;
   const b=absBox(nodeG);
   const cx=b.cx, cy=b.cy;
 
-  // Check if node is diamond-shaped (contains a polygon or rotated rect)
-  const poly=nodeG.querySelector('polygon')||nodeG.querySelector('path.label-container');
-  const isDiamond=nodeG.querySelector('polygon')!==null||
-    (nodeG.getAttribute('class')||'').includes('diamond');
+  // Check polygon type by point count
+  const _poly=nodeG.querySelector('polygon.label-container');
+  const _polyPts=_poly?(_poly.getAttribute('points')||'').trim().split(/\s+/).length:0;
+  const isDiamond=_polyPts===4;
+  const isHexagon=_polyPts===6;
 
   if(isDiamond){
     // Diamond corners: top, right, bottom, left
@@ -1849,6 +1911,26 @@ function snapToBorder(nodeG, pt, hasArrow=true, bigArrow=false, zeroOffset=false
     });
     if(best){
       // Offset outward from center
+      const len=Math.hypot(best.x-cx,best.y-cy)||1;
+      return{x:best.x+(best.x-cx)/len*OFFSET,
+             y:best.y+(best.y-cy)/len*OFFSET};
+    }
+  }
+
+  if(isHexagon&&_poly){
+    // Parse actual polygon points and use ray-segment intersection (same as diamond)
+    const rawPts=(_poly.getAttribute('points')||'').trim().split(/\s+/);
+    const{ox,oy}=ancestorOffset(_poly);
+    const tpoly=parseTx(_poly.getAttribute('transform'));
+    const ptx=ox+tpoly.x, pty=oy+tpoly.y;
+    const hexPts=rawPts.map(p=>{const[px,py]=p.split(',').map(Number);return{x:ptx+px,y:pty+py};});
+    let best=null,bestD=Infinity;
+    for(let i=0;i<hexPts.length;i++){
+      const a=hexPts[i],e=hexPts[(i+1)%hexPts.length];
+      const hit=raySegIntersect(cx,cy,pt.x,pt.y,a.x,a.y,e.x,e.y);
+      if(hit){const d=Math.hypot(hit.x-pt.x,hit.y-pt.y);if(d<bestD){bestD=d;best=hit;}}
+    }
+    if(best){
       const len=Math.hypot(best.x-cx,best.y-cy)||1;
       return{x:best.x+(best.x-cx)/len*OFFSET,
              y:best.y+(best.y-cy)/len*OFFSET};
@@ -1888,7 +1970,7 @@ function raySegIntersect(rx,ry,tx,ty,ax,ay,bx,by){
 }
 
 window.addEventListener('mouseup',()=>{if(isPanning){isPanning=false;cwrap.classList.remove('panning');cwrap.classList.remove('panning-active');cwrap.style.cursor='';}});
-document.getElementById('zInBtn').onclick  =()=>{zoom=Math.min(4,zoom*1.2);applyTx();};
+document.getElementById('zInBtn').onclick  =()=>{zoom=Math.min(20,zoom*1.2);applyTx();};
 document.getElementById('cpSizeSlider').addEventListener('input',e=>{
   HR=HR_BASE*parseFloat(e.target.value);
   if(currentSVG){
@@ -2058,7 +2140,8 @@ function snapAllEndpoints(){
     const _srcZero=false;
     const _isState=/stateDiagram/i.test(editor.value);
     const _srcDepend=_isClass&&/dependency/i.test(_srcMarker);
-    const _srcOpts=_isState&&_hasSrcArrow?{offset:2}:_srcDepend?{offset:7}:{};
+    const _srcCircle=/circle/i.test(_srcMarker);
+    const _srcOpts=_isState&&_hasSrcArrow?{offset:2}:_srcDepend?{offset:7}:_srcCircle?{offset:0}:{};
     const snappedSrc=snapToBorder(conn.srcG,conn.p1,_hasSrcArrow,_isClass,_srcZero,_srcOpts);
     const dxSrc=snappedSrc.x-conn.p1.x,dySrc=snappedSrc.y-conn.p1.y;
     conn.p1=snappedSrc;conn.c1={x:conn.c1.x+dxSrc,y:conn.c1.y+dySrc};
@@ -2070,7 +2153,8 @@ function snapAllEndpoints(){
     const _tgtMarker=conn.pathEl.getAttribute('marker-end')||'';
     const _tgtZero=false;
     const _tgtDepend=_isClass&&/dependency/i.test(_tgtMarker);
-    const _tgtOpts=_isState&&_hasTgtArrow?{offset:2}:_tgtDepend?{offset:7}:{};
+    const _tgtCircle=/circle/i.test(_tgtMarker);
+    const _tgtOpts=_isState&&_hasTgtArrow?{offset:2}:_tgtDepend?{offset:7}:_tgtCircle?{offset:0}:{};
     const snappedTgt=snapToBorder(conn.tgtG,conn.p2,_hasTgtArrow,_isClass,_tgtZero,_tgtOpts);
     const dxTgt=snappedTgt.x-conn.p2.x,dyTgt=snappedTgt.y-conn.p2.y;
     conn.p2=snappedTgt;conn.c2={x:conn.c2.x+dxTgt,y:conn.c2.y+dyTgt};
@@ -2079,7 +2163,15 @@ function snapAllEndpoints(){
   buildHandles(currentSVG);
 }
 
-function snapToBorder(nodeG, pt, hasArrow=true, bigArrow=false, zeroOffset=false, opts={}){
+function isSubroutineNode(nodeG){
+  // Double-bracket [[...]] nodes have a polygon with 10 points (diamond has 4)
+  const poly=nodeG&&nodeG.querySelector('polygon.label-container');
+  if(!poly)return false;
+  const pts=(poly.getAttribute('points')||'').trim().split(/\s+/);
+  return pts.length>4;
+}
+
+function snapToBorder(nodeG, pt, hasArrow=true, bigArrow=false, zeroOffset=false, opts={}) {
   // opts.offset: explicit override (takes priority over all flags)
   let OFFSET;
   if(!hasArrow)            OFFSET=0;
@@ -2087,13 +2179,17 @@ function snapToBorder(nodeG, pt, hasArrow=true, bigArrow=false, zeroOffset=false
   else if(bigArrow)        OFFSET=18;
   else                     OFFSET=5;
   if(opts.offset!==undefined) OFFSET=opts.offset;
+  // Subroutine nodes [[...]] have bracket lines 8px beyond their bounding box
+  // Only add for zero-offset cases (circles, no arrow); triangular arrows already work at their natural offset
+  if(OFFSET===0&&isSubroutineNode(nodeG)) OFFSET+=0;
   const b=absBox(nodeG);
   const cx=b.cx, cy=b.cy;
 
-  // Check if node is diamond-shaped (contains a polygon or rotated rect)
-  const poly=nodeG.querySelector('polygon')||nodeG.querySelector('path.label-container');
-  const isDiamond=nodeG.querySelector('polygon')!==null||
-    (nodeG.getAttribute('class')||'').includes('diamond');
+  // Check polygon type by point count
+  const _poly=nodeG.querySelector('polygon.label-container');
+  const _polyPts=_poly?(_poly.getAttribute('points')||'').trim().split(/\s+/).length:0;
+  const isDiamond=_polyPts===4;
+  const isHexagon=_polyPts===6;
 
   if(isDiamond){
     // Diamond corners: top, right, bottom, left
@@ -2119,6 +2215,26 @@ function snapToBorder(nodeG, pt, hasArrow=true, bigArrow=false, zeroOffset=false
     });
     if(best){
       // Offset outward from center
+      const len=Math.hypot(best.x-cx,best.y-cy)||1;
+      return{x:best.x+(best.x-cx)/len*OFFSET,
+             y:best.y+(best.y-cy)/len*OFFSET};
+    }
+  }
+
+  if(isHexagon&&_poly){
+    // Parse actual polygon points and use ray-segment intersection (same as diamond)
+    const rawPts=(_poly.getAttribute('points')||'').trim().split(/\s+/);
+    const{ox,oy}=ancestorOffset(_poly);
+    const tpoly=parseTx(_poly.getAttribute('transform'));
+    const ptx=ox+tpoly.x, pty=oy+tpoly.y;
+    const hexPts=rawPts.map(p=>{const[px,py]=p.split(',').map(Number);return{x:ptx+px,y:pty+py};});
+    let best=null,bestD=Infinity;
+    for(let i=0;i<hexPts.length;i++){
+      const a=hexPts[i],e=hexPts[(i+1)%hexPts.length];
+      const hit=raySegIntersect(cx,cy,pt.x,pt.y,a.x,a.y,e.x,e.y);
+      if(hit){const d=Math.hypot(hit.x-pt.x,hit.y-pt.y);if(d<bestD){bestD=d;best=hit;}}
+    }
+    if(best){
       const len=Math.hypot(best.x-cx,best.y-cy)||1;
       return{x:best.x+(best.x-cx)/len*OFFSET,
              y:best.y+(best.y-cy)/len*OFFSET};
