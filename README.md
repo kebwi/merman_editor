@@ -5,7 +5,7 @@ Merman is a mermaid diagram editor and also a file format. It extends convention
 
 * Clicking the Open button to find a .mmd/.mermaid/.mmn/.merman file.
 * Dragging a .mmd/.mermaid/.mmn/.merman file into the workspace.
-* Pasting mermaid code into the syntax editor.
+* Pasting mermaid or merman code into the syntax editor.
 
 Saved **merman** files use a file format that appends layout details to the end of a standard mermaid file. You can always recover a mermaid file from a merman file by simply discarding the merman information after the obvious demarcation point in the file.
 
@@ -28,7 +28,7 @@ Drag **connection label handles** to reposition labels.
 **Command+click** (Mac) or **Ctrl+click** to add/remove boxes and subgraphs to/from the selection for synchronized repositioning.
 
 ### Navigation
-**Mouse-scroll** to zoom. **Space+drag** to pan. The **Fit** button nicely frames the diagram.
+**Mouse-scroll** (or use the relevant buttons at the top of the UI) to zoom. **Space+drag** to pan. The **Fit** button nicely frames the diagram.
 
 ### Export
 PNGs are exported in light mode. The **light/dark** button can assist with previewing, as can the **Show/Hide** controls button (the controls are still available when hidden and will appear when the cursor is nearby).
