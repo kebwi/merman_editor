@@ -28,7 +28,7 @@ Drag **connection label handles** to reposition labels.
 **Command+click** (Mac) or **Ctrl+click** to add/remove boxes and subgraphs to/from the selection for synchronized repositioning.
 
 ### Navigation
-**Mouse-scroll** to zoom. **Space+drag** to pan. The **Fit** button nicely frames the diagram.
+**Mouse-scroll** (or use the relevant buttons at the top of the UI) to zoom. **Space+drag** to pan. The **Fit** button nicely frames the diagram.
 
 ### Export
 PNGs are exported in light mode. The **light/dark** button can assist with previewing, as can the **Show/Hide** controls button (the controls are still available when hidden and will appear when the cursor is nearby).
