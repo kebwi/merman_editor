@@ -328,7 +328,7 @@ body.light #cinner svg .edgeLabel span{color:#1a1e2e;background:transparent;}
 </head>
 <body>
 <div id="header">
-  <div class="logo">🔱 Merman: <span>Mermaid Editor <i>v1.0.6</i></span></div>
+  <div class="logo">🔱 Merman: <span>Mermaid Editor <i>v1.0.7</i></span></div>
   <input type="text" id="filename" value="Untitled" spellcheck="false">
   <div class="dot" id="dot"></div>
   <button class="hbtn primary" id="fitBtn">Fit</button>
@@ -747,20 +747,20 @@ function buildHandles(svgEl){
     if(conn.rectilinear)return; // no handles for rectilinear (swimlane) connections
     // Faint hollow circle for src endpoint
     conn.h1=mkCircle(layer,conn.p1.x,conn.p1.y,'transparent','crosshair',{handleType:'endpoint',edgeIdx:i,end:'src'});
-    /* ARROWHEAD-HANDLE-HIDING (re-enable to hide endpoint handles after debugging)
-    conn.h1.setAttribute('fill-opacity','0');
-    conn.h1.setAttribute('stroke','rgba(255,255,255,0.25)');
-    */
+    /* ARROWHEAD-HANDLE-HIDING (comment out to show endpoint handles for debugging)
     conn.h1.setAttribute('fill-opacity','0.45');
     conn.h1.setAttribute('stroke','#fff');
-    // Hollow circle for tgt endpoint
-    conn.h2=mkCircle(layer,conn.p2.x,conn.p2.y,'transparent','crosshair',{handleType:'endpoint',edgeIdx:i,end:'tgt'});
-    /* ARROWHEAD-HANDLE-HIDING (re-enable to hide endpoint handles after debugging)
-    conn.h2.setAttribute('fill-opacity','0');
-    conn.h2.setAttribute('stroke','rgba(255,255,255,0.25)');
     */
+    conn.h1.setAttribute('fill-opacity','0');
+    conn.h1.setAttribute('stroke','rgba(255,255,255,0.25)');
+    // Faint hollow circle for tgt endpoint
+    conn.h2=mkCircle(layer,conn.p2.x,conn.p2.y,'transparent','crosshair',{handleType:'endpoint',edgeIdx:i,end:'tgt'});
+    /* ARROWHEAD-HANDLE-HIDING (comment out to show endpoint handles for debugging)
     conn.h2.setAttribute('fill-opacity','0.45');
     conn.h2.setAttribute('stroke','#fff');
+    */
+    conn.h2.setAttribute('fill-opacity','0');
+    conn.h2.setAttribute('stroke','rgba(255,255,255,0.25)');
     if(conn.c1&&conn.c2){
       // Two control point handles: hc1 near source, hc2 near target
       // Dashed stem lines from control points to their endpoints
